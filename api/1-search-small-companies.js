@@ -33,15 +33,15 @@ module.exports = async (req, res) => {
         // STEP 1: Get companies - OPTIMIZADO PARA PEQUEÑAS EMPRESAS
         const apolloPayload = {
             page: page,
-            per_page: 20, // Más resultados porque habrá menos match
+            per_page: 25,
             organization_locations: locationFilter,
-            organization_num_employees_ranges: filters.size ? [filters.size] : ['11,500'], // 10-500 empleados
+            organization_num_employees_ranges: filters.size ? [filters.size] : ['1,500'], // 1-500 empleados
             q_organization_keyword_tags: filters.keywords && filters.keywords.length > 0 
                 ? filters.keywords 
                 : [
-                    'ecommerce', 'e-commerce', 'loja online',
+                    'ecommerce', 'e-commerce', 'loja online', 'varejo',
                     'distributor', 'distribuidora', 'distribuição',
-                    'fulfillment', '3pl', 'logistics',
+                    'fulfillment', '3pl', 'logistics', 'logística',
                     'manufacturer', 'fabricante', 'indústria',
                     'autopeças', 'auto parts',
                     'móveis', 'furniture',
@@ -67,7 +67,7 @@ module.exports = async (req, res) => {
         const organizations = companiesResponse.data?.organizations || [];
         const pagination = companiesResponse.data?.pagination || {};
         
-        console.log(`✅ Found ${organizations.length} small companies in SC`);
+        console.log(`✅ Apollo returned ${organizations.length} companies`);
 
         if (organizations.length === 0) {
             return res.status(200).json({
@@ -80,38 +80,36 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Filtrar solo empresas de SC (a veces Apollo devuelve otras)
+        // FILTRO MÍNIMO: Solo verificar que sea Brasil (confiar en Apollo para SC)
         const scCompanies = organizations.filter(org => {
-            const state = org.state || '';
-            const city = org.city || '';
-            return state.includes('Santa Catarina') || state.includes('SC') || 
-                   city.includes('Balneário') || city.includes('Itajaí') || 
-                   city.includes('Joinville') || city.includes('Blumenau');
+            const country = (org.country || '').toLowerCase();
+            // Si Apollo devolvió la empresa con nuestro filtro de location, confiar
+            return country === 'brazil' || country === 'brasil' || !country;
         });
 
-        console.log(`🎯 Filtered to ${scCompanies.length} SC companies`);
+        console.log(`🎯 Verified ${scCompanies.length} Brazilian companies (from ${organizations.length} total)`);
 
-        // Extract company IDs
-        const companyIds = scCompanies.map(org => org.id).filter(Boolean);
-
-        if (companyIds.length === 0) {
+        if (scCompanies.length === 0) {
             return res.status(200).json({
                 success: true,
                 organizations: [],
                 total: 0,
                 page: 1,
                 total_pages: 1,
-                message: 'Nenhuma empresa de SC encontrada'
+                message: 'Nenhuma empresa brasileira encontrada'
             });
         }
+
+        // Extract company IDs
+        const companyIds = scCompanies.map(org => org.id).filter(Boolean);
 
         // STEP 2: Get contacts - PRIORIDAD PARA PEQUEÑAS EMPRESAS
         const contactsPayload = {
             page: 1,
             per_page: 100,
             organization_ids: companyIds,
-            // PRIORIDAD: Owners/CEOs primeiro, depois gerentes, depois coordenadores
-            person_seniorities: ["owner", "c_suite", "vp", "director", "manager", "senior", "entry"],
+            // PRIORIDAD: Owners/CEOs primeiro, depois gerentes
+            person_seniorities: ["owner", "c_suite", "vp", "director", "manager", "senior"],
             person_titles: [
                 // TIER 1: OWNERS & CEOs (máxima prioridad)
                 "Owner", "Co-owner", "Proprietário", "Sócio",
@@ -127,12 +125,10 @@ module.exports = async (req, res) => {
                 "Gerente Comercial", "Commercial Manager",
                 "Gerente de Compras", "Purchasing Manager",
                 
-                // TIER 3: COORDENADORES & SUPERVISORES (media prioridad)
+                // TIER 3: COORDENADORES & SUPERVISORES
                 "Coordenador de Logística", "Logistics Coordinator",
                 "Coordenador de Operações", "Operations Coordinator",
-                "Supervisor de Produção", "Production Supervisor",
-                "Supervisor de Qualidade", "Quality Supervisor",
-                "Coordenador de Expedição", "Shipping Coordinator"
+                "Supervisor de Produção", "Production Supervisor"
             ]
         };
 
@@ -157,8 +153,7 @@ module.exports = async (req, res) => {
         const companiesWithContacts = scCompanies.map(company => {
             const companyContacts = allContacts.filter(contact => 
                 contact.organization_id === company.id || 
-                contact.organization?.id === company.id ||
-                contact.organization?.name === company.name
+                contact.organization?.id === company.id
             );
             
             // Ordenar por TIER de prioridad
@@ -197,11 +192,6 @@ module.exports = async (req, res) => {
                             return 4;
                         }
                         
-                        // TIER 5: Supervisores
-                        if (titleLower.includes('supervisor')) {
-                            return 5;
-                        }
-                        
                         return 10;
                     };
                     
@@ -215,7 +205,7 @@ module.exports = async (req, res) => {
             };
         });
 
-        // Ordenar empresas: primero las que tienen owners/CEOs, luego por tamaño
+        // Ordenar empresas: primero las que tienen owners/CEOs
         companiesWithContacts.sort((a, b) => {
             const hasOwnerA = a.contacts.some(c => 
                 (c.title || '').toLowerCase().includes('owner') || 
@@ -241,14 +231,14 @@ module.exports = async (req, res) => {
             organizations: companiesWithContacts,
             total: pagination.total_entries || companiesWithContacts.length,
             page: pagination.page || 1,
-            per_page: pagination.per_page || 20,
+            per_page: pagination.per_page || 25,
             total_pages: pagination.total_pages || 1,
             total_contacts_found: allContacts.length,
             api_calls_used: 2,
             filter_summary: {
                 location: locationFilter[0],
-                size_range: filters.size || '11-500 employees',
-                industries: filters.keywords?.join(', ') || 'all'
+                size_range: filters.size || '1-500 employees',
+                industries: filters.keywords?.join(', ') || 'multiple'
             }
         });
 
