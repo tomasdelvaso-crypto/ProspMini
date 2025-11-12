@@ -136,19 +136,54 @@
             }
         }
 
-        function renderCompanies(companies) {
-            const container = document.getElementById('results-container');
-            
-            if (companies.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16">
-                        <div class="text-6xl mb-4">🔍</div>
-                        <h3 class="text-xl font-semibold mb-2">Nenhuma empresa encontrada</h3>
-                        <p class="text-gray-600">Ajuste os filtros e tente novamente</p>
+function renderCompany(company) {
+    // Construir links de redes sociales
+    const socialLinks = [];
+    if (company.website) socialLinks.push(`<a href="${company.website}" target="_blank" class="text-blue-600 hover:underline">🌐 Website</a>`);
+    if (company.linkedin) socialLinks.push(`<a href="${company.linkedin}" target="_blank" class="text-blue-600 hover:underline">💼 LinkedIn</a>`);
+    if (company.instagram) socialLinks.push(`<a href="${company.instagram}" target="_blank" class="text-blue-600 hover:underline">📸 Instagram</a>`);
+    if (company.facebook) socialLinks.push(`<a href="${company.facebook}" target="_blank" class="text-blue-600 hover:underline">👥 Facebook</a>`);
+    
+    return `
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="text-2xl font-bold mb-2">${company.name}</h3>
+                        <div class="flex gap-3 text-sm flex-wrap">
+                            ${company.city ? `<span>📍 ${company.city}, SC</span>` : ''}
+                            ${company.employees ? `<span>👥 ${company.employees} funcionários</span>` : ''}
+                            ${company.industry ? `<span>🏭 ${company.industry}</span>` : ''}
+                        </div>
+                        ${company.phone ? `<div class="mt-2">📞 ${company.phone}</div>` : ''}
+                        
+                        ${socialLinks.length > 0 ? `
+                            <div class="mt-3 flex gap-3 text-sm">
+                                ${socialLinks.join(' · ')}
+                            </div>
+                        ` : ''}
                     </div>
-                `;
-                return;
-            }
+                    
+                    ${company.website ? `
+                        <a href="${company.website}" target="_blank" 
+                           class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 whitespace-nowrap">
+                            🌐 Visitar Site
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
+
+            <div class="p-6">
+                <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts.length})</h4>
+                ${company.contacts.length === 0 ? 
+                    '<p class="text-gray-500 italic">Nenhum decisor encontrado</p>' :
+                    `<div class="space-y-3">${company.contacts.map(contact => 
+                        renderContact(contact, company.name)).join('')}</div>`
+                }
+            </div>
+        </div>
+    `;
+}
 
             container.innerHTML = `
                 <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas encontradas</h2>
