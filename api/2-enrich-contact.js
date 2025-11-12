@@ -21,50 +21,49 @@ module.exports = async (req, res) => {
 
         const { contact } = req.body;
         
-        if (!contact || !contact.name) {
+        if (!contact || !contact.linkedin_url) {
             return res.status(400).json({
                 success: false,
-                error: 'Contact data required (name, company, etc.)'
+                error: 'LinkedIn URL required for enrichment'
             });
         }
 
-        console.log(`💰 USING LUSHA CREDIT for: ${contact.name} at ${contact.company}`);
+        console.log(`💰 USING LUSHA CREDIT for: ${contact.name}`);
 
-        // Lusha Person Enrichment API
-        const lushaPayload = {
-            data: {
-                company: contact.company,
-                first_name: contact.name.split(' ')[0],
-                last_name: contact.name.split(' ').slice(1).join(' ') || contact.name.split(' ')[0],
-                linkedin_url: contact.linkedin_url || undefined
-            },
-            property: ['emailAddress', 'phoneNumber']
-        };
-
+        // Lusha API v2 - Person Enrichment by LinkedIn
         const lushaResponse = await axios.post(
-            'https://api.lusha.com/person',
-            lushaPayload,
+            'https://api.lusha.com/enrichment',
+            {
+                properties: ['emailAddresses', 'phoneNumbers'],
+                person: {
+                    linkedInUrl: contact.linkedin_url
+                }
+            },
             {
                 headers: {
-                    'api_key': lushaKey,
+                    'Authorization': `Bearer ${lushaKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 15000
             }
         );
 
-        const enrichedData = lushaResponse.data?.data || {};
+        const enrichedData = lushaResponse.data || {};
+        
+        // Extraer emails
+        const emails = enrichedData.emailAddresses || [];
+        const phones = enrichedData.phoneNumbers || [];
 
-        console.log(`✅ Lusha enrichment complete for ${contact.name}`);
+        console.log(`✅ Lusha: ${emails.length} emails, ${phones.length} phones`);
 
         res.status(200).json({
             success: true,
             contact_id: contact.id,
             enriched_data: {
-                email: enrichedData.emailAddress?.value || null,
-                email_confidence: enrichedData.emailAddress?.accuracy || null,
-                phone: enrichedData.phoneNumber?.internationalNumber || null,
-                phone_type: enrichedData.phoneNumber?.type || null
+                emails: emails.map(e => e.email || e),
+                phones: phones.map(p => p.number || p),
+                primary_email: emails[0]?.email || emails[0] || null,
+                primary_phone: phones[0]?.number || phones[0] || null
             },
             lusha_credit_used: true,
             timestamp: new Date().toISOString()
@@ -73,7 +72,6 @@ module.exports = async (req, res) => {
     } catch (error) {
         console.error('❌ Lusha error:', error.response?.data || error.message);
         
-        // Si Lusha falla, no perder el crédito
         res.status(500).json({
             success: false,
             error: 'Lusha enrichment failed',
