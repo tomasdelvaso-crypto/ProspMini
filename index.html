@@ -64,14 +64,14 @@
                     <label class="block text-sm font-medium mb-2">🏭 Indústria</label>
                     <select id="industry-filter" class="w-full px-4 py-2 border rounded-lg">
                         <option value="">Todas</option>
-                        <option value="E-commerce / Loja Online">E-commerce / Loja Online</option>
-                        <option value="Distribuidora">Distribuidora</option>
-                        <option value="Logística / 3PL">Logística / 3PL</option>
-                        <option value="Fabricante / Indústria">Fabricante / Indústria</option>
-                        <option value="Autopeças">Autopeças</option>
-                        <option value="Móveis">Móveis</option>
-                        <option value="Alimentos">Alimentos</option>
-                        <option value="Farmacêutico">Farmacêutico</option>
+                        <option value="ecommerce">E-commerce / Loja Online</option>
+                        <option value="distributor">Distribuidora</option>
+                        <option value="logistics">Logística / 3PL</option>
+                        <option value="manufacturer">Fabricante / Indústria</option>
+                        <option value="autopeças">Autopeças</option>
+                        <option value="furniture">Móveis</option>
+                        <option value="food">Alimentos</option>
+                        <option value="pharmaceutical">Farmacêutico</option>
                     </select>
                 </div>
 
@@ -105,12 +105,15 @@
             btn.disabled = true;
             btn.innerHTML = '🔄 Buscando...';
             
+            const industryValue = document.getElementById('industry-filter').value;
+            
             const filters = {
                 city: document.getElementById('city-filter').value,
                 size: document.getElementById('size-filter').value,
-                keywords: document.getElementById('industry-filter').value ? 
-                    [document.getElementById('industry-filter').value] : []
+                keywords: industryValue ? [industryValue] : []
             };
+
+            console.log('Filters:', filters);
 
             try {
                 const response = await fetch('/api/1-search-small-companies', {
@@ -120,6 +123,8 @@
                 });
                 
                 const data = await response.json();
+                
+                console.log('Response:', data);
                 
                 if (data.success) {
                     document.getElementById('apollo-credits').textContent = data.apollo_credits_used || 0;
@@ -136,54 +141,19 @@
             }
         }
 
-function renderCompany(company) {
-    // Construir links de redes sociales
-    const socialLinks = [];
-    if (company.website) socialLinks.push(`<a href="${company.website}" target="_blank" class="text-blue-600 hover:underline">🌐 Website</a>`);
-    if (company.linkedin) socialLinks.push(`<a href="${company.linkedin}" target="_blank" class="text-blue-600 hover:underline">💼 LinkedIn</a>`);
-    if (company.instagram) socialLinks.push(`<a href="${company.instagram}" target="_blank" class="text-blue-600 hover:underline">📸 Instagram</a>`);
-    if (company.facebook) socialLinks.push(`<a href="${company.facebook}" target="_blank" class="text-blue-600 hover:underline">👥 Facebook</a>`);
-    
-    return `
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h3 class="text-2xl font-bold mb-2">${company.name}</h3>
-                        <div class="flex gap-3 text-sm flex-wrap">
-                            ${company.city ? `<span>📍 ${company.city}, SC</span>` : ''}
-                            ${company.employees ? `<span>👥 ${company.employees} funcionários</span>` : ''}
-                            ${company.industry ? `<span>🏭 ${company.industry}</span>` : ''}
-                        </div>
-                        ${company.phone ? `<div class="mt-2">📞 ${company.phone}</div>` : ''}
-                        
-                        ${socialLinks.length > 0 ? `
-                            <div class="mt-3 flex gap-3 text-sm">
-                                ${socialLinks.join(' · ')}
-                            </div>
-                        ` : ''}
+        function renderCompanies(companies) {
+            const container = document.getElementById('results-container');
+            
+            if (!companies || companies.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <h3 class="text-xl font-semibold mb-2">Nenhuma empresa encontrada</h3>
+                        <p class="text-gray-600">Ajuste os filtros e tente novamente</p>
                     </div>
-                    
-                    ${company.website ? `
-                        <a href="${company.website}" target="_blank" 
-                           class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 whitespace-nowrap">
-                            🌐 Visitar Site
-                        </a>
-                    ` : ''}
-                </div>
-            </div>
-
-            <div class="p-6">
-                <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts.length})</h4>
-                ${company.contacts.length === 0 ? 
-                    '<p class="text-gray-500 italic">Nenhum decisor encontrado</p>' :
-                    `<div class="space-y-3">${company.contacts.map(contact => 
-                        renderContact(contact, company.name)).join('')}</div>`
-                }
-            </div>
-        </div>
-    `;
-}
+                `;
+                return;
+            }
 
             container.innerHTML = `
                 <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas encontradas</h2>
@@ -194,30 +164,52 @@ function renderCompany(company) {
         }
 
         function renderCompany(company) {
+            const socialLinks = [];
+            if (company.website) {
+                socialLinks.push(`<a href="${company.website}" target="_blank" class="text-blue-100 hover:text-white underline">🌐 Website</a>`);
+            }
+            if (company.linkedin) {
+                socialLinks.push(`<a href="${company.linkedin}" target="_blank" class="text-blue-100 hover:text-white underline">💼 LinkedIn</a>`);
+            }
+            if (company.instagram) {
+                socialLinks.push(`<a href="${company.instagram}" target="_blank" class="text-blue-100 hover:text-white underline">📸 Instagram</a>`);
+            }
+            if (company.facebook) {
+                socialLinks.push(`<a href="${company.facebook}" target="_blank" class="text-blue-100 hover:text-white underline">👥 Facebook</a>`);
+            }
+            
             return `
                 <div class="bg-white rounded-lg shadow-md overflow-hidden">
                     <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
                         <div class="flex justify-between items-start">
-                            <div>
+                            <div class="flex-1">
                                 <h3 class="text-2xl font-bold mb-2">${company.name}</h3>
-                                <div class="flex gap-3 text-sm">
+                                <div class="flex gap-3 text-sm flex-wrap mb-2">
                                     ${company.city ? `<span>📍 ${company.city}, SC</span>` : ''}
-                                    ${company.employees ? `<span>👥 ${company.employees}</span>` : ''}
+                                    ${company.employees ? `<span>👥 ${company.employees} funcionários</span>` : ''}
+                                    ${company.industry ? `<span>🏭 ${company.industry}</span>` : ''}
                                 </div>
-                                ${company.phone ? `<div class="mt-2">📞 ${company.phone}</div>` : ''}
+                                ${company.phone ? `<div class="mb-2">📞 ${company.phone}</div>` : ''}
+                                
+                                ${socialLinks.length > 0 ? `
+                                    <div class="flex gap-3 text-sm flex-wrap">
+                                        ${socialLinks.join(' • ')}
+                                    </div>
+                                ` : ''}
                             </div>
+                            
                             ${company.website ? `
                                 <a href="${company.website}" target="_blank" 
-                                   class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">
-                                    🌐 Website
+                                   class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 whitespace-nowrap ml-4">
+                                    🌐 Visitar Site
                                 </a>
                             ` : ''}
                         </div>
                     </div>
 
                     <div class="p-6">
-                        <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts.length})</h4>
-                        ${company.contacts.length === 0 ? 
+                        <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts ? company.contacts.length : 0})</h4>
+                        ${!company.contacts || company.contacts.length === 0 ? 
                             '<p class="text-gray-500 italic">Nenhum decisor encontrado</p>' :
                             `<div class="space-y-3">${company.contacts.map(contact => 
                                 renderContact(contact, company.name)).join('')}</div>`
@@ -229,21 +221,26 @@ function renderCompany(company) {
 
         function renderContact(contact, companyName) {
             const isEnriched = enrichedContacts[contact.id];
+            const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
+            const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
             
             return `
                 <div class="border rounded-lg p-4">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
-                                <h5 class="font-semibold">${contact.name}</h5>
+                                <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
                                 ${contact.seniority === 'owner' ? 
                                     '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
+                                    ''}
+                                ${contact.seniority === 'c_suite' ? 
+                                    '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
                                     ''}
                             </div>
                             <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
                             
                             ${contact.linkedin_url ? 
-                                `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline">
+                                `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
                                     🔗 LinkedIn
                                 </a>` : 
                                 ''}
@@ -262,7 +259,7 @@ function renderCompany(company) {
                         </div>
 
                         ${!isEnriched ? `
-                            <button onclick='enrichContact(${JSON.stringify(contact).replace(/'/g, "&#39;")}, "${companyName}")' 
+                            <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
                                     class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
                                 💰 Enriquecer
                             </button>
@@ -306,7 +303,6 @@ function renderCompany(company) {
                     
                     alert(`✅ Contato enriquecido!\nEmail: ${data.enriched_data.email || 'N/A'}\nTelefone: ${data.enriched_data.phone || 'N/A'}`);
                     
-                    // Re-render para mostrar dados enriquecidos
                     searchCompanies();
                 } else {
                     alert('❌ Falha: ' + data.error);
