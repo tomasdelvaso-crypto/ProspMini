@@ -11,13 +11,11 @@ export default function Home() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState({});
-  const [selectedCompany, setSelectedCompany] = useState(null);
   const [stats, setStats] = useState({
     apollo_credits: 0,
     lusha_credits: 0
   });
 
-  // Cargar enriquecimientos del localStorage
   useEffect(() => {
     const saved = localStorage.getItem('enriched_contacts');
     if (saved) {
@@ -59,13 +57,11 @@ export default function Home() {
   };
 
   const enrichContact = async (contact, companyName) => {
-    const contactKey = contact.id;
-    
     if (!window.confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
       return;
     }
 
-    setEnriching(prev => ({ ...prev, [contactKey]: true }));
+    setEnriching(prev => ({ ...prev, [contact.id]: true }));
     
     try {
       const response = await fetch('/api/2-enrich-contact', {
@@ -84,7 +80,6 @@ export default function Home() {
       const data = await response.json();
       
       if (data.success) {
-        // Actualizar contacto con datos de Lusha
         setCompanies(prev => prev.map(company => ({
           ...company,
           contacts: company.contacts.map(c => 
@@ -100,7 +95,6 @@ export default function Home() {
           )
         })));
         
-        // Guardar en localStorage
         const saved = JSON.parse(localStorage.getItem('enriched_contacts') || '{}');
         saved[contact.id] = {
           email_lusha: data.enriched_data.email,
@@ -110,7 +104,6 @@ export default function Home() {
         };
         localStorage.setItem('enriched_contacts', JSON.stringify(saved));
         
-        // Actualizar stats
         setStats(prev => ({
           ...prev,
           lusha_credits: prev.lusha_credits + 1
@@ -118,13 +111,13 @@ export default function Home() {
         
         alert(`✅ Contato enriquecido!\nEmail: ${data.enriched_data.email || 'N/A'}\nTelefone: ${data.enriched_data.phone || 'N/A'}`);
       } else {
-        alert('❌ Falha no enriquecimento: ' + data.error);
+        alert('❌ Falha: ' + data.error);
       }
     } catch (error) {
       console.error('Enrichment error:', error);
-      alert('Erro ao enriquecer contato');
+      alert('Erro ao enriquecer');
     } finally {
-      setEnriching(prev => ({ ...prev, [contactKey]: false }));
+      setEnriching(prev => ({ ...prev, [contact.id]: false }));
     }
   };
 
@@ -149,31 +142,39 @@ export default function Home() {
     <>
       <Head>
         <title>Ventapel SC - Prospecção PMEs</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
+      <style jsx global>{`
+        .bg-ventapel { background-color: #3B5BA8; }
+        .text-ventapel { color: #3B5BA8; }
+        .border-ventapel { border-color: #3B5BA8; }
+      `}</style>
+
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-ventapel-blue shadow-lg">
+        <header className="bg-ventapel shadow-lg">
           <div className="container mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-2xl">🎯</span>
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl">
+                  🎯
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">Ventapel SC - Pequenas Empresas</h1>
-                  <p className="text-blue-100 text-sm">Prospecção inteligente de PMEs em Santa Catarina</p>
+                  <h1 className="text-2xl font-bold text-white">
+                    Ventapel SC - Pequenas Empresas
+                  </h1>
+                  <p className="text-blue-100 text-sm">
+                    Prospecção inteligente em Santa Catarina
+                  </p>
                 </div>
               </div>
               
               <div className="flex gap-4 text-white">
                 <div className="text-right">
-                  <p className="text-xs text-blue-100">Apollo Credits</p>
+                  <p className="text-xs text-blue-100">Apollo</p>
                   <p className="text-xl font-bold">{stats.apollo_credits}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-blue-100">Lusha Credits</p>
+                  <p className="text-xs text-blue-100">Lusha</p>
                   <p className="text-xl font-bold text-yellow-300">{stats.lusha_credits}</p>
                 </div>
               </div>
@@ -182,23 +183,18 @@ export default function Home() {
         </header>
 
         <div className="container mx-auto px-4 py-8">
-          {/* Filters */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-2">🔍</span>
-              Filtros de Busca
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">🔍 Filtros de Busca</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* City Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏙️ Prefeitura (SC)
+                <label className="block text-sm font-medium mb-2">
+                  🏙️ Cidade
                 </label>
                 <select
                   value={filters.city}
                   onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ventapel-blue focus:border-transparent"
+                  className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="">Todas em SC</option>
                   {cities.map(city => (
@@ -207,9 +203,8 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* Industry Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2">
                   🏭 Indústria
                 </label>
                 <select
@@ -218,7 +213,7 @@ export default function Home() {
                     ...filters, 
                     keywords: e.target.value ? [e.target.value] : [] 
                   })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ventapel-blue focus:border-transparent"
+                  className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="">Todas</option>
                   {industries.map(ind => (
@@ -227,20 +222,19 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* Size Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2">
                   👥 Tamanho
                 </label>
                 <select
                   value={filters.size}
                   onChange={(e) => setFilters({ ...filters, size: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ventapel-blue focus:border-transparent"
+                  className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="">1-500 funcionários</option>
-                  <option value="1,50">1-50 funcionários</option>
-                  <option value="51,200">51-200 funcionários</option>
-                  <option value="201,500">201-500 funcionários</option>
+                  <option value="1,50">1-50</option>
+                  <option value="51,200">51-200</option>
+                  <option value="201,500">201-500</option>
                 </select>
               </div>
             </div>
@@ -248,75 +242,50 @@ export default function Home() {
             <button
               onClick={searchCompanies}
               disabled={loading}
-              className="mt-6 w-full bg-ventapel-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 w-full bg-ventapel hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg disabled:opacity-50"
             >
               {loading ? '🔄 Buscando...' : '🚀 Buscar Empresas'}
             </button>
           </div>
 
-          {/* Results */}
           {companies.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">
-                  📊 {companies.length} empresas encontradas
-                </h2>
-              </div>
+              <h2 className="text-xl font-bold mb-4">
+                📊 {companies.length} empresas
+              </h2>
 
-              <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-6">
                 {companies.map((company) => (
-                  <div key={company.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-                    {/* Company Header */}
-                    <div className="bg-gradient-to-r from-ventapel-blue to-blue-600 p-6 text-white">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                  <div key={company.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
+                      <div className="flex justify-between items-start">
+                        <div>
                           <h3 className="text-2xl font-bold mb-2">{company.name}</h3>
-                          <div className="flex flex-wrap gap-3 text-sm">
-                            {company.city && (
-                              <span className="flex items-center">
-                                <span className="mr-1">📍</span>
-                                {company.city}, {company.state}
-                              </span>
-                            )}
-                            {company.employees && (
-                              <span className="flex items-center">
-                                <span className="mr-1">👥</span>
-                                {company.employees} funcionários
-                              </span>
-                            )}
-                            {company.industry && (
-                              <span className="flex items-center">
-                                <span className="mr-1">🏭</span>
-                                {company.industry}
-                              </span>
-                            )}
+                          <div className="flex gap-3 text-sm">
+                            {company.city && <span>📍 {company.city}, SC</span>}
+                            {company.employees && <span>👥 {company.employees}</span>}
                           </div>
+                          {company.phone && (
+                            <div className="mt-2">📞 {company.phone}</div>
+                          )}
                         </div>
                         
-                        {company.has_website && (
+                        {company.website && (
                           
                             href={company.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-white text-ventapel-blue px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
+                            className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50"
                           >
                             🌐 Website
                           </a>
                         )}
                       </div>
-
-                      {company.phone && (
-                        <div className="mt-3 text-blue-100">
-                          📞 {company.phone}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Contacts */}
                     <div className="p-6">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <span className="mr-2">👤</span>
-                        Decisores ({company.contacts.length})
+                      <h4 className="font-semibold mb-4">
+                        👤 Decisores ({company.contacts.length})
                       </h4>
 
                       {company.contacts.length === 0 ? (
@@ -326,69 +295,55 @@ export default function Home() {
                           {company.contacts.map((contact) => (
                             <div
                               key={contact.id}
-                              className="border border-gray-200 rounded-lg p-4 hover:border-ventapel-blue transition"
+                              className="border rounded-lg p-4"
                             >
-                              <div className="flex items-start justify-between">
+                              <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <h5 className="font-semibold text-gray-900">{contact.name}</h5>
+                                    <h5 className="font-semibold">{contact.name}</h5>
                                     {contact.seniority === 'owner' && (
-                                      <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                                      <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
                                         👑 OWNER
-                                      </span>
-                                    )}
-                                    {contact.seniority === 'c_suite' && (
-                                      <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
-                                        CEO
                                       </span>
                                     )}
                                   </div>
                                   <p className="text-sm text-gray-600 mb-2">{contact.title}</p>
 
-                                  {/* Contact Info */}
-                                  <div className="space-y-1 text-sm">
-                                    {contact.linkedin_url && (
-                                      
-                                        href={contact.linkedin_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center text-blue-600 hover:text-blue-800"
-                                      >
-                                        <span className="mr-1">🔗</span>
-                                        LinkedIn
-                                      </a>
-                                    )}
+                                  {contact.linkedin_url && (
+                                    
+                                      href={contact.linkedin_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 text-sm hover:underline"
+                                    >
+                                      🔗 LinkedIn
+                                    </a>
+                                  )}
 
-                                    {contact.enriched && (
-                                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                                        <p className="text-green-800 font-semibold text-xs mb-1">✅ Enriquecido com Lusha</p>
-                                        {contact.email_lusha && (
-                                          <p className="text-gray-700">
-                                            <span className="font-medium">Email:</span> {contact.email_lusha}
-                                          </p>
-                                        )}
-                                        {contact.phone_lusha && (
-                                          <p className="text-gray-700">
-                                            <span className="font-medium">Tel:</span> {contact.phone_lusha}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {contact.email_apollo && contact.email_status === 'verified' && (
-                                      <p className="text-gray-700">
-                                        <span className="font-medium">Email (Apollo):</span> {contact.email_apollo}
+                                  {contact.enriched && (
+                                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                                      <p className="text-xs font-semibold text-green-800 mb-1">
+                                        ✅ Enriquecido
                                       </p>
-                                    )}
-                                  </div>
+                                      {contact.email_lusha && (
+                                        <p className="text-sm">
+                                          <strong>Email:</strong> {contact.email_lusha}
+                                        </p>
+                                      )}
+                                      {contact.phone_lusha && (
+                                        <p className="text-sm">
+                                          <strong>Tel:</strong> {contact.phone_lusha}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
-                                {/* Enrich Button */}
                                 {!contact.enriched && (
                                   <button
                                     onClick={() => enrichContact(contact, company.name)}
                                     disabled={enriching[contact.id]}
-                                    className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                    className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
                                   >
                                     {enriching[contact.id] ? '⏳' : '💰 Enriquecer'}
                                   </button>
@@ -408,7 +363,7 @@ export default function Home() {
           {companies.length === 0 && !loading && (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-xl font-semibold mb-2">
                 Nenhuma empresa encontrada
               </h3>
               <p className="text-gray-600">
@@ -418,28 +373,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
-      <style jsx global>{`
-        :root {
-          --ventapel-blue: #3B5BA8;
-        }
-        
-        .bg-ventapel-blue {
-          background-color: var(--ventapel-blue);
-        }
-        
-        .text-ventapel-blue {
-          color: var(--ventapel-blue);
-        }
-        
-        .border-ventapel-blue {
-          border-color: var(--ventapel-blue);
-        }
-        
-        .ring-ventapel-blue {
-          --tw-ring-color: var(--ventapel-blue);
-        }
-      `}</style>
     </>
   );
 }
