@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventapel SC - Pequenas Empresas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .priority-city { background-color: #fef3c7; }
+        .contact-card { transition: all 0.2s; }
+        .contact-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 mb-8 text-white">
+            <h1 class="text-3xl font-bold mb-2">🎯 Ventapel SC - Pequenas Empresas</h1>
+            <p class="text-blue-100">Prospecção inteligente de PMEs em Santa Catarina</p>
+        </div>
+
+        <!-- Search Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Filtros de Busca</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- Prefeitura Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        🏙️ Prefeitura (SC)
+                    </label>
+                    <select id="prefeitura" class="w-full border border-gray-300 rounded-md p-2">
+                        <option value="">Todas Santa Catarina</option>
+                        <optgroup label="⭐ Prioritárias">
+                            <option value="Balneário Camboriú">Balneário Camboriú</option>
+                            <option value="Itajaí">Itajaí</option>
+                            <option value="Camboriú">Camboriú</option>
+                            <option value="Joinville">Joinville</option>
+                            <option value="Blumenau">Blumenau</option>
+                            <option value="Brusque">Brusque</option>
+                            <option value="Jaraguá do Sul">Jaraguá do Sul</option>
+                            <option value="Tubarão">Tubarão</option>
+                        </optgroup>
+                        <optgroup label="Outras Cidades">
+                            <option value="Florianópolis">Florianópolis</option>
+                            <option value="São José">São José</option>
+                            <option value="Chapecó">Chapecó</option>
+                            <option value="Criciúma">Criciúma</option>
+                            <option value="Lages">Lages</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Industry Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        🏭 Indústria
+                    </label>
+                    <select id="industry" class="w-full border border-gray-300 rounded-md p-2">
+                        <option value="">Todas</option>
+                        <option value="ecommerce">E-commerce / Loja Online</option>
+                        <option value="auto-parts">Distribuidora Autopeças</option>
+                        <option value="auto-manufacturing">Fábrica Autopeças</option>
+                        <option value="food-distribution">Distribuidora Alimentos</option>
+                        <option value="furniture">Móveis / Movelaria</option>
+                        <option value="packaging">Embalagens / Packaging</option>
+                        <option value="3pl">3PL / Fulfillment</option>
+                        <option value="general-distribution">Distribuição Geral</option>
+                    </select>
+                </div>
+
+                <!-- Size Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        👥 Tamanho
+                    </label>
+                    <select id="size" class="w-full border border-gray-300 rounded-md p-2">
+                        <option value="11,50">10-50 funcionários</option>
+                        <option value="51,200">51-200 funcionários</option>
+                        <option value="201,500">201-500 funcionários</option>
+                        <option value="11,500" selected>Todas (10-500)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="searchBtn" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                🔍 Buscar Empresas
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <div class="animate-spin inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+            <p class="text-blue-800 font-medium">Buscando empresas em Santa Catarina...</p>
+        </div>
+
+        <!-- Results Container -->
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        const API_BASE = ''; // Vercel auto-detecta
+
+        // Mapping de indústrias para keywords Apollo
+        const industryKeywords = {
+            'ecommerce': ['ecommerce', 'e-commerce', 'loja online', 'varejo online', 'marketplace'],
+            'auto-parts': ['auto parts distributor', 'distribuidora peças', 'autopeças', 'distribuidor automotivo'],
+            'auto-manufacturing': ['auto parts manufacturer', 'fabricante peças', 'indústria automotiva'],
+            'food-distribution': ['food distributor', 'distribuidora alimentos', 'distribuição alimentos', 'atacado alimentos'],
+            'furniture': ['furniture manufacturer', 'movelaria', 'fábrica móveis', 'indústria moveleira'],
+            'packaging': ['packaging distributor', 'distribuidora embalagens', 'revendedor embalagens'],
+            '3pl': ['3pl', 'fulfillment', 'logística terceirizada', 'operador logístico'],
+            'general-distribution': ['distributor', 'distribuidora', 'wholesale', 'atacado']
+        };
+
+        // Prefeituras prioritárias (para ordenação)
+        const priorityCities = [
+            'Balneário Camboriú', 'Itajaí', 'Camboriú', 
+            'Joinville', 'Blumenau', 'Brusque', 
+            'Jaraguá do Sul', 'Tubarão'
+        ];
+
+        document.getElementById('searchBtn').addEventListener('click', searchCompanies);
+
+        async function searchCompanies() {
+            const prefeitura = document.getElementById('prefeitura').value;
+            const industry = document.getElementById('industry').value;
+            const size = document.getElementById('size').value;
+
+            // Build filters
+            const filters = {
+                location: 'Santa Catarina, Brazil',
+                size: size,
+                keywords: industry ? industryKeywords[industry] : [
+                    'ecommerce', 'distributor', 'manufacturer', 'fulfillment', 
+                    '3pl', 'logistics', 'warehouse'
+                ]
+            };
+
+            // Add city filter if selected
+            if (prefeitura) {
+                filters.city = prefeitura;
+            }
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').innerHTML = '';
+
+            try {
+                const response = await fetch('/api/1-search-small-companies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filters, page: 1 })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.organizations.length > 0) {
+                    displayResults(data.organizations, prefeitura);
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                            <p class="text-yellow-800">Nenhuma empresa encontrada com esses filtros.</p>
+                            <p class="text-sm text-yellow-600 mt-2">Tente remover alguns filtros ou expandir a busca.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <p class="text-red-800">❌ Erro ao buscar empresas: ${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function displayResults(organizations, selectedCity) {
+            const resultsDiv = document.getElementById('results');
+            
+            // Sort by priority cities first
+            organizations.sort((a, b) => {
+                const aCity = a.city || '';
+                const bCity = b.city || '';
+                const aPriority = priorityCities.indexOf(aCity);
+                const bPriority = priorityCities.indexOf(bCity);
+                
+                if (aPriority !== -1 && bPriority === -1) return -1;
+                if (aPriority === -1 && bPriority !== -1) return 1;
+                if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
+                
+                return (b.estimated_num_employees || 0) - (a.estimated_num_employees || 0);
+            });
+
+            resultsDiv.innerHTML = `
+                <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">
+                        ✅ ${organizations.length} empresas encontradas
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                        🎯 Cidades prioritárias aparecem primeiro
+                    </p>
+                </div>
+            `;
+
+            organizations.forEach(company => {
+                const isPriorityCity = priorityCities.includes(company.city);
+                const companyCard = createCompanyCard(company, isPriorityCity);
+                resultsDiv.innerHTML += companyCard;
+            });
+        }
+
+        function createCompanyCard(company, isPriorityCity) {
+            const contacts = company.contacts || [];
+            const city = company.city || 'Não especificada';
+            const employees = company.estimated_num_employees || 'Desconhecido';
+            const industry = company.industry || 'Não especificada';
+
+            return `
+                <div class="bg-white rounded-lg shadow-md p-6 mb-4 ${isPriorityCity ? 'priority-city border-2 border-yellow-400' : ''}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-1">
+                                ${isPriorityCity ? '⭐ ' : ''}${company.name}
+                            </h3>
+                            <div class="flex gap-4 text-sm text-gray-600">
+                                <span>🏙️ ${city}</span>
+                                <span>👥 ${employees} funcionários</span>
+                                <span>🏭 ${industry}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${contacts.length > 0 ? `
+                        <div class="mt-4">
+                            <h4 class="font-semibold text-gray-700 mb-3">
+                                📞 Contatos Encontrados (${contacts.length})
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                ${contacts.map(contact => createContactCard(contact, company)).join('')}
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="bg-gray-50 rounded p-3 text-center text-gray-600">
+                            ℹ️ Nenhum contato encontrado no primeiro scan
+                        </div>
+                    `}
+
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="viewOnLinkedIn('${company.name}')" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                            🔍 Ver no LinkedIn
+                        </button>
+                        ${contacts.length > 0 ? `
+                            <button onclick="enrichCompany('${company.id}')" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                                💎 Enriquecer Dados (usa créditos)
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createContactCard(contact, company) {
+            const title = contact.title || 'Cargo não especificado';
+            const name = contact.name || 'Nome não disponível';
+            const email = contact.email || '';
+            const phone = contact.phone_numbers?.[0]?.sanitized_number || '';
+            const linkedinUrl = contact.linkedin_url || '';
+
+            // Determinar prioridade do contato
+            let priority = '🔵';
+            const titleLower = title.toLowerCase();
+            if (titleLower.includes('owner') || titleLower.includes('ceo') || titleLower.includes('proprietário')) {
+                priority = '🔴'; // Alta prioridade - Dono
+            } else if (titleLower.includes('director') || titleLower.includes('gerente') || titleLower.includes('manager')) {
+                priority = '🟡'; // Média prioridade - Gerente
+            }
+
+            return `
+                <div class="contact-card bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-start gap-2">
+                        <span class="text-xl">${priority}</span>
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-800">${name}</p>
+                            <p class="text-sm text-gray-600">${title}</p>
+                            ${email ? `<p class="text-xs text-blue-600 mt-1">📧 ${email}</p>` : ''}
+                            ${phone ? `<p class="text-xs text-green-600 mt-1">📱 ${phone}</p>` : ''}
+                            ${linkedinUrl ? `
+                                <a href="${linkedinUrl}" target="_blank" 
+                                   class="text-xs text-blue-500 hover:underline mt-1 inline-block">
+                                    🔗 LinkedIn
+                                </a>
+                            ` : ''}
+                            ${!email && !phone ? `
+                                <button onclick="enrichContact('${contact.id}', '${company.id}')" 
+                                        class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mt-2">
+                                    💎 Buscar contato
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function viewOnLinkedIn(companyName) {
+            const searchUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`;
+            window.open(searchUrl, '_blank');
+        }
+
+        async function enrichContact(contactId, companyId) {
+            alert('Funcionalidade de enrichment será implementada próximo passo');
+            // TODO: Implementar chamada para Lusha/Apollo enrichment
+        }
+
+        async function enrichCompany(companyId) {
+            alert('Funcionalidade de enrichment será implementada próximo passo');
+            // TODO: Implementar enrichment completo + Intel + Claude
+        }
+    </script>
+</body>
+</html>
