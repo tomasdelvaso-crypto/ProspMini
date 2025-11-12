@@ -219,99 +219,144 @@
             `;
         }
 
-        function renderContact(contact, companyName) {
-            const isEnriched = enrichedContacts[contact.id];
-            const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
-            const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-            
-            return `
-                <div class="border rounded-lg p-4">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
-                                ${contact.seniority === 'owner' ? 
-                                    '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
-                                    ''}
-                                ${contact.seniority === 'c_suite' ? 
-                                    '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
-                                    ''}
-                            </div>
-                            <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
-                            
-                            ${contact.linkedin_url ? 
-                                `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
-                                    🔗 LinkedIn
-                                </a>` : 
-                                ''}
+function renderContact(contact, companyName) {
+    const isEnriched = enrichedContacts[contact.id];
+    const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
+    const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+    
+    // Mostrar TODOS los emails y teléfonos de Apollo
+    const hasApolloData = contact.emails_apollo?.length > 0 || contact.phones_apollo?.length > 0;
+    
+    return `
+        <div class="border rounded-lg p-4">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
+                        ${contact.seniority === 'owner' ? 
+                            '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
+                            ''}
+                        ${contact.seniority === 'c_suite' ? 
+                            '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
+                            ''}
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
+                    
+                    ${contact.linkedin_url ? 
+                        `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
+                            🔗 LinkedIn
+                        </a>` : 
+                        ''}
 
-                            ${isEnriched ? `
-                                <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                                    <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido</p>
-                                    ${isEnriched.email_lusha ? 
-                                        `<p class="text-sm"><strong>Email:</strong> ${isEnriched.email_lusha}</p>` : 
-                                        ''}
-                                    ${isEnriched.phone_lusha ? 
-                                        `<p class="text-sm"><strong>Tel:</strong> ${isEnriched.phone_lusha}</p>` : 
-                                        ''}
+                    ${hasApolloData ? `
+                        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <p class="text-xs font-semibold text-blue-800 mb-1">📊 Dados Apollo (grátis)</p>
+                            
+                            ${contact.emails_apollo && contact.emails_apollo.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-xs font-medium text-gray-700">Emails:</p>
+                                    ${contact.emails_apollo.map(email => 
+                                        `<p class="text-sm text-gray-800">✉️ ${email}</p>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            ${contact.phones_apollo && contact.phones_apollo.length > 0 ? `
+                                <div>
+                                    <p class="text-xs font-medium text-gray-700">Telefones:</p>
+                                    ${contact.phones_apollo.map(phone => 
+                                        `<p class="text-sm text-gray-800">📞 ${phone.number} <span class="text-xs text-gray-500">(${phone.type})</span></p>`
+                                    ).join('')}
                                 </div>
                             ` : ''}
                         </div>
+                    ` : ''}
 
-                        ${!isEnriched ? `
-                            <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
-                                    class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-                                💰 Enriquecer
-                            </button>
-                        ` : ''}
-                    </div>
+                    ${isEnriched ? `
+                        <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                            <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido com Lusha</p>
+                            ${isEnriched.emails && isEnriched.emails.length > 0 ? `
+                                <div class="mb-2">
+                                    <p class="text-xs font-medium text-gray-700">Emails Lusha:</p>
+                                    ${isEnriched.emails.map(email => 
+                                        `<p class="text-sm text-gray-800">✉️ ${email}</p>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                            ${isEnriched.phones && isEnriched.phones.length > 0 ? `
+                                <div>
+                                    <p class="text-xs font-medium text-gray-700">Telefones Lusha:</p>
+                                    ${isEnriched.phones.map(phone => 
+                                        `<p class="text-sm text-gray-800">📞 ${phone}</p>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
                 </div>
-            `;
-        }
 
-        async function enrichContact(contact, companyName) {
-            if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
-                return;
-            }
+                ${!isEnriched && contact.needs_enrichment ? `
+                    <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
+                            class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
+                        💰 Enriquecer Lusha
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
 
-            try {
-                const response = await fetch('/api/2-enrich-contact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contact: {
-                            id: contact.id,
-                            name: contact.name,
-                            company: companyName,
-                            linkedin_url: contact.linkedin_url
-                        }
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    enrichedContacts[contact.id] = {
-                        email_lusha: data.enriched_data.email,
-                        phone_lusha: data.enriched_data.phone,
-                        enriched: true
-                    };
-                    localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
-                    
-                    const currentCredits = parseInt(document.getElementById('lusha-credits').textContent);
-                    document.getElementById('lusha-credits').textContent = currentCredits + 1;
-                    
-                    alert(`✅ Contato enriquecido!\nEmail: ${data.enriched_data.email || 'N/A'}\nTelefone: ${data.enriched_data.phone || 'N/A'}`);
-                    
-                    searchCompanies();
-                } else {
-                    alert('❌ Falha: ' + data.error);
+async function enrichContact(contact, companyName) {
+    if (!contact.linkedin_url) {
+        alert('❌ Precisa de LinkedIn URL para enriquecer');
+        return;
+    }
+
+    if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/2-enrich-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contact: {
+                    id: contact.id,
+                    name: contact.name,
+                    company: companyName,
+                    linkedin_url: contact.linkedin_url
                 }
-            } catch (error) {
-                console.error('Enrichment error:', error);
-                alert('Erro ao enriquecer contato');
-            }
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            enrichedContacts[contact.id] = {
+                emails: data.enriched_data.emails || [],
+                phones: data.enriched_data.phones || [],
+                enriched: true
+            };
+            localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
+            
+            const currentCredits = parseInt(document.getElementById('lusha-credits').textContent);
+            document.getElementById('lusha-credits').textContent = currentCredits + 1;
+            
+            const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
+            const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
+            
+            alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
+            
+            searchCompanies();
+        } else {
+            alert('❌ Falha: ' + data.error);
         }
+    } catch (error) {
+        console.error('Enrichment error:', error);
+        alert('Erro ao enriquecer contato');
+    }
+}
     </script>
 </body>
 </html>
