@@ -21,13 +21,11 @@ module.exports = async (req, res) => {
 
         const { filters = {}, page = 1 } = req.body;
 
-        // Build location filter
         let locationFilter = ['Santa Catarina, Brazil'];
         if (filters.city) {
             locationFilter = [`${filters.city}, Santa Catarina, Brazil`];
         }
 
-        // FIXED: Construcción del payload Apollo
         const apolloPayload = {
             page: page,
             per_page: 25,
@@ -35,7 +33,6 @@ module.exports = async (req, res) => {
             organization_num_employees_ranges: filters.size ? [filters.size] : ['1,500']
         };
 
-        // FIXED: Solo agregar keywords si el usuario seleccionó algo
         if (filters.keywords && filters.keywords.length > 0) {
             apolloPayload.q_organization_keyword_tags = filters.keywords;
         }
@@ -70,7 +67,6 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Filtro mínimo
         const validCompanies = organizations.filter(org => {
             const country = (org.country || '').toLowerCase();
             return country === 'brazil' || country === 'brasil' || !country;
@@ -80,7 +76,7 @@ module.exports = async (req, res) => {
 
         const companyIds = validCompanies.map(org => org.id).filter(Boolean);
 
-        // STEP 2: Get contacts
+        // STEP 2: Get contacts with ALL contact info
         const contactsPayload = {
             page: 1,
             per_page: 100,
@@ -120,7 +116,7 @@ module.exports = async (req, res) => {
         const allContacts = contactsResponse.data?.people || [];
         console.log(`✅ Retrieved ${allContacts.length} contacts`);
 
-        // STEP 3: Map contacts to companies
+        // STEP 3: Extract ALL emails and phones from Apollo
         const companiesWithContacts = validCompanies.map(company => {
             const companyContacts = allContacts.filter(contact => 
                 contact.organization_id === company.id || 
@@ -128,18 +124,48 @@ module.exports = async (req, res) => {
             );
             
             const prioritizedContacts = companyContacts
-                .map(contact => ({
-                    id: contact.id,
-                    name: contact.name || `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
-                    title: contact.title,
-                    seniority: contact.seniority,
-                    linkedin_url: contact.linkedin_url,
-                    email_apollo: contact.email || null,
-                    phone_apollo: contact.phone_numbers?.[0]?.sanitized_number || null,
-                    email_status: contact.email_status || 'unknown',
-                    needs_enrichment: !contact.email || contact.email_status !== 'verified',
-                    enriched: false
-                }))
+                .map(contact => {
+                    // EXTRAER TODOS LOS EMAILS
+                    const emails = [];
+                    if (contact.email) emails.push(contact.email);
+                    if (contact.personal_emails) emails.push(...contact.personal_emails);
+                    if (contact.corporate_emails) emails.push(...contact.corporate_emails);
+                    
+                    // EXTRAER TODOS LOS TELÉFONOS
+                    const phones = [];
+                    if (contact.phone_numbers && contact.phone_numbers.length > 0) {
+                        contact.phone_numbers.forEach(phone => {
+                            if (phone.sanitized_number) {
+                                phones.push({
+                                    number: phone.sanitized_number,
+                                    type: phone.type || 'unknown'
+                                });
+                            }
+                        });
+                    }
+                    
+                    return {
+                        id: contact.id,
+                        name: contact.name || `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
+                        title: contact.title,
+                        seniority: contact.seniority,
+                        linkedin_url: contact.linkedin_url,
+                        
+                        // TODOS LOS EMAILS DE APOLLO
+                        emails_apollo: emails,
+                        primary_email: emails[0] || null,
+                        email_status: contact.email_status,
+                        
+                        // TODOS LOS TELÉFONOS DE APOLLO
+                        phones_apollo: phones,
+                        primary_phone: phones[0]?.number || null,
+                        
+                        // Flag para saber si necesita Lusha
+                        needs_enrichment: emails.length === 0 || phones.length === 0,
+                        has_verified_email: contact.email_status === 'verified',
+                        enriched: false
+                    };
+                })
                 .sort((a, b) => {
                     const getPriority = (title, seniority) => {
                         if (!title) return 999;
@@ -164,43 +190,29 @@ module.exports = async (req, res) => {
                 })
                 .slice(0, 8);
 
-            // FIXED: Extraer TODAS las redes sociales y website
             return {
                 id: company.id,
                 name: company.name,
-                
-                // WEBSITES
                 website: company.website_url || company.primary_domain || null,
                 domain: company.primary_domain,
-                
-                // REDES SOCIALES
                 linkedin: company.linkedin_url || null,
                 facebook: company.facebook_url || null,
                 twitter: company.twitter_url || null,
-                instagram: company.instagram_url || null, // Apollo puede tener este campo
-                
-                // LOCATION
+                instagram: company.instagram_url || null,
                 city: company.city,
                 state: company.state,
                 country: company.country,
-                
-                // COMPANY INFO
                 employees: company.estimated_num_employees,
                 industry: company.industry,
                 phone: company.phone || company.primary_phone?.number,
                 founded_year: company.founded_year,
-                
-                // CONTACTS
                 contacts: prioritizedContacts,
-                
-                // METADATA
                 has_website: !!(company.website_url || company.primary_domain),
                 has_decision_makers: prioritizedContacts.length > 0,
                 top_decision_maker: prioritizedContacts[0] || null
             };
         });
 
-        // Ordenar
         companiesWithContacts.sort((a, b) => {
             if (a.has_website && !b.has_website) return -1;
             if (!a.has_website && b.has_website) return 1;
@@ -210,13 +222,11 @@ module.exports = async (req, res) => {
             
             const hasOwnerA = a.contacts.some(c => 
                 (c.title || '').toLowerCase().includes('owner') || 
-                (c.title || '').toLowerCase().includes('ceo') ||
-                (c.title || '').toLowerCase().includes('proprietário')
+                (c.title || '').toLowerCase().includes('ceo')
             );
             const hasOwnerB = b.contacts.some(c => 
                 (c.title || '').toLowerCase().includes('owner') || 
-                (c.title || '').toLowerCase().includes('ceo') ||
-                (c.title || '').toLowerCase().includes('proprietário')
+                (c.title || '').toLowerCase().includes('ceo')
             );
             
             if (hasOwnerA && !hasOwnerB) return -1;
@@ -225,7 +235,7 @@ module.exports = async (req, res) => {
             return (b.employees || 0) - (a.employees || 0);
         });
 
-        console.log('✅ Success - NO Lusha credits used yet');
+        console.log('✅ Success - NO Lusha credits used');
 
         res.status(200).json({
             success: true,
