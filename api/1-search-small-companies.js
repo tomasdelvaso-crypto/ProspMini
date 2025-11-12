@@ -27,24 +27,18 @@ module.exports = async (req, res) => {
             locationFilter = [`${filters.city}, Santa Catarina, Brazil`];
         }
 
-        // STEP 1: Get companies with website
+        // FIXED: Construcción del payload Apollo
         const apolloPayload = {
             page: page,
             per_page: 25,
             organization_locations: locationFilter,
-            organization_num_employees_ranges: filters.size ? [filters.size] : ['1,500'],
-            q_organization_keyword_tags: filters.keywords && filters.keywords.length > 0 
-                ? filters.keywords 
-                : [
-                    'ecommerce', 'e-commerce', 'loja online', 'varejo',
-                    'distributor', 'distribuidora', 'distribuição',
-                    'fulfillment', '3pl', 'logistics', 'logística',
-                    'manufacturer', 'fabricante', 'indústria',
-                    'autopeças', 'auto parts',
-                    'móveis', 'furniture', 'embalagens', 'packaging',
-                    'alimentos', 'food'
-                ]
+            organization_num_employees_ranges: filters.size ? [filters.size] : ['1,500']
         };
+
+        // FIXED: Solo agregar keywords si el usuario seleccionó algo
+        if (filters.keywords && filters.keywords.length > 0) {
+            apolloPayload.q_organization_keyword_tags = filters.keywords;
+        }
 
         console.log('🔍 Apollo search:', JSON.stringify(apolloPayload, null, 2));
 
@@ -76,7 +70,7 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Filtrar solo Brasil
+        // Filtro mínimo
         const validCompanies = organizations.filter(org => {
             const country = (org.country || '').toLowerCase();
             return country === 'brazil' || country === 'brasil' || !country;
@@ -86,19 +80,16 @@ module.exports = async (req, res) => {
 
         const companyIds = validCompanies.map(org => org.id).filter(Boolean);
 
-        // STEP 2: Get contacts with LinkedIn (NO LUSHA AÚN)
+        // STEP 2: Get contacts
         const contactsPayload = {
             page: 1,
             per_page: 100,
             organization_ids: companyIds,
             person_seniorities: ["owner", "c_suite", "vp", "director", "manager", "senior"],
             person_titles: [
-                // Owners & CEOs
                 "Owner", "Co-owner", "Proprietário", "Sócio",
                 "CEO", "Founder", "Co-founder",
                 "Diretor Geral", "Diretor Executivo",
-                
-                // Gerentes
                 "Gerente de Operações", "Operations Manager",
                 "Gerente de Logística", "Logistics Manager",
                 "Gerente de Qualidade", "Quality Manager",
@@ -106,8 +97,6 @@ module.exports = async (req, res) => {
                 "Gerente Geral", "General Manager",
                 "Gerente Comercial", "Commercial Manager",
                 "Gerente de Compras", "Purchasing Manager",
-                
-                // Coordenadores
                 "Coordenador de Logística", "Logistics Coordinator",
                 "Coordenador de Operações", "Operations Coordinator",
                 "Supervisor de Produção", "Production Supervisor"
@@ -138,7 +127,6 @@ module.exports = async (req, res) => {
                 contact.organization?.id === company.id
             );
             
-            // Priorizar y limpiar contactos
             const prioritizedContacts = companyContacts
                 .map(contact => ({
                     id: contact.id,
@@ -146,13 +134,11 @@ module.exports = async (req, res) => {
                     title: contact.title,
                     seniority: contact.seniority,
                     linkedin_url: contact.linkedin_url,
-                    // Apollo a veces trae email/phone pero puede ser genérico
                     email_apollo: contact.email || null,
                     phone_apollo: contact.phone_numbers?.[0]?.sanitized_number || null,
                     email_status: contact.email_status || 'unknown',
-                    // Flag para saber si necesita Lusha
                     needs_enrichment: !contact.email || contact.email_status !== 'verified',
-                    enriched: false // Se marca true después de Lusha
+                    enriched: false
                 }))
                 .sort((a, b) => {
                     const getPriority = (title, seniority) => {
@@ -178,38 +164,50 @@ module.exports = async (req, res) => {
                 })
                 .slice(0, 8);
 
+            // FIXED: Extraer TODAS las redes sociales y website
             return {
                 id: company.id,
                 name: company.name,
+                
+                // WEBSITES
                 website: company.website_url || company.primary_domain || null,
                 domain: company.primary_domain,
+                
+                // REDES SOCIALES
+                linkedin: company.linkedin_url || null,
+                facebook: company.facebook_url || null,
+                twitter: company.twitter_url || null,
+                instagram: company.instagram_url || null, // Apollo puede tener este campo
+                
+                // LOCATION
                 city: company.city,
                 state: company.state,
                 country: company.country,
+                
+                // COMPANY INFO
                 employees: company.estimated_num_employees,
                 industry: company.industry,
                 phone: company.phone || company.primary_phone?.number,
-                linkedin: company.linkedin_url,
                 founded_year: company.founded_year,
+                
+                // CONTACTS
                 contacts: prioritizedContacts,
-                // Metadata útil
+                
+                // METADATA
                 has_website: !!(company.website_url || company.primary_domain),
                 has_decision_makers: prioritizedContacts.length > 0,
                 top_decision_maker: prioritizedContacts[0] || null
             };
         });
 
-        // Ordenar: primero con owners/CEOs y website
+        // Ordenar
         companiesWithContacts.sort((a, b) => {
-            // Prioridad 1: Tiene website
             if (a.has_website && !b.has_website) return -1;
             if (!a.has_website && b.has_website) return 1;
             
-            // Prioridad 2: Tiene decisor
             if (a.has_decision_makers && !b.has_decision_makers) return -1;
             if (!a.has_decision_makers && b.has_decision_makers) return 1;
             
-            // Prioridad 3: Owner/CEO identificado
             const hasOwnerA = a.contacts.some(c => 
                 (c.title || '').toLowerCase().includes('owner') || 
                 (c.title || '').toLowerCase().includes('ceo') ||
@@ -224,7 +222,6 @@ module.exports = async (req, res) => {
             if (hasOwnerA && !hasOwnerB) return -1;
             if (!hasOwnerA && hasOwnerB) return 1;
             
-            // Prioridad 4: Tamaño
             return (b.employees || 0) - (a.employees || 0);
         });
 
@@ -238,12 +235,12 @@ module.exports = async (req, res) => {
             per_page: pagination.per_page || 25,
             total_pages: pagination.total_pages || 1,
             total_contacts_found: allContacts.length,
-            apollo_credits_used: 2, // 1 para companies, 1 para people
-            lusha_credits_used: 0, // CERO hasta que usuario seleccione
+            apollo_credits_used: 2,
+            lusha_credits_used: 0,
             filter_summary: {
                 location: locationFilter[0],
                 size_range: filters.size || '1-500 employees',
-                industries: filters.keywords?.join(', ') || 'multiple'
+                industries: filters.keywords?.join(', ') || 'todas'
             }
         });
 
