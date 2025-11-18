@@ -86,40 +86,83 @@
                 </div>
             </div>
 
-            <button onclick="searchCompanies()" id="search-btn" class="mt-6 w-full bg-ventapel hover:bg-ventapel text-white font-semibold py-3 px-6 rounded-lg">
+            <button onclick="searchCompanies(1)" id="search-btn" class="mt-6 w-full bg-ventapel hover:bg-ventapel text-white font-semibold py-3 px-6 rounded-lg">
                 🚀 Buscar Empresas
             </button>
         </div>
 
+        <!-- Pagination Info -->
+        <div id="pagination-info" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Página <span id="current-page" class="font-bold">1</span> de <span id="total-pages" class="font-bold">1</span>
+                    </p>
+                    <p class="text-xs text-gray-600 mt-1">
+                        <span id="total-results" class="font-semibold">0</span> empresas encontradas no total
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="previousPage()" id="prev-btn" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ← Anterior
+                    </button>
+                    <button onclick="nextPage()" id="next-btn" class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Próxima →
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Results -->
         <div id="results-container"></div>
+
+        <!-- Bottom Pagination -->
+        <div id="pagination-bottom" class="hidden mt-6 flex justify-center">
+            <div class="flex gap-2">
+                <button onclick="previousPage()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" id="prev-btn-bottom">
+                    ← Anterior
+                </button>
+                <div class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium">
+                    Página <span id="current-page-bottom">1</span> de <span id="total-pages-bottom">1</span>
+                </div>
+                <button onclick="nextPage()" class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" id="next-btn-bottom">
+                    Próxima →
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
         let enrichedContacts = JSON.parse(localStorage.getItem('enriched_contacts') || '{}');
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalResults = 0;
+        let currentFilters = {};
 
-        async function searchCompanies() {
+        async function searchCompanies(page = 1) {
             const btn = document.getElementById('search-btn');
             const container = document.getElementById('results-container');
             
             btn.disabled = true;
             btn.innerHTML = '🔄 Buscando...';
             
+            currentPage = page;
+            
             const industryValue = document.getElementById('industry-filter').value;
             
-            const filters = {
+            currentFilters = {
                 city: document.getElementById('city-filter').value,
                 size: document.getElementById('size-filter').value,
                 keywords: industryValue ? [industryValue] : []
             };
 
-            console.log('Filters:', filters);
+            console.log('Filters:', currentFilters, 'Page:', page);
 
             try {
                 const response = await fetch('/api/1-search-small-companies', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filters, page: 1 })
+                    body: JSON.stringify({ filters: currentFilters, page: page })
                 });
                 
                 const data = await response.json();
@@ -128,7 +171,12 @@
                 
                 if (data.success) {
                     document.getElementById('apollo-credits').textContent = data.apollo_credits_used || 0;
+                    
+                    totalPages = data.total_pages || 1;
+                    totalResults = data.total || 0;
+                    
                     renderCompanies(data.organizations);
+                    updatePagination();
                 } else {
                     alert('Erro na busca: ' + data.error);
                 }
@@ -138,6 +186,47 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '🚀 Buscar Empresas';
+            }
+        }
+
+        function updatePagination() {
+            const paginationInfo = document.getElementById('pagination-info');
+            const paginationBottom = document.getElementById('pagination-bottom');
+            
+            if (totalPages > 1) {
+                paginationInfo.classList.remove('hidden');
+                paginationBottom.classList.remove('hidden');
+                
+                // Update all page indicators
+                document.getElementById('current-page').textContent = currentPage;
+                document.getElementById('total-pages').textContent = totalPages;
+                document.getElementById('current-page-bottom').textContent = currentPage;
+                document.getElementById('total-pages-bottom').textContent = totalPages;
+                document.getElementById('total-results').textContent = totalResults;
+                
+                // Enable/disable buttons
+                const prevButtons = [document.getElementById('prev-btn'), document.getElementById('prev-btn-bottom')];
+                const nextButtons = [document.getElementById('next-btn'), document.getElementById('next-btn-bottom')];
+                
+                prevButtons.forEach(btn => btn.disabled = currentPage === 1);
+                nextButtons.forEach(btn => btn.disabled = currentPage >= totalPages);
+            } else {
+                paginationInfo.classList.add('hidden');
+                paginationBottom.classList.add('hidden');
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                searchCompanies(currentPage - 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                searchCompanies(currentPage + 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
@@ -156,7 +245,7 @@
             }
 
             container.innerHTML = `
-                <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas encontradas</h2>
+                <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas nesta página</h2>
                 <div class="space-y-6">
                     ${companies.map(company => renderCompany(company)).join('')}
                 </div>
@@ -219,144 +308,143 @@
             `;
         }
 
-function renderContact(contact, companyName) {
-    const isEnriched = enrichedContacts[contact.id];
-    const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
-    const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-    
-    // Mostrar TODOS los emails y teléfonos de Apollo
-    const hasApolloData = contact.emails_apollo?.length > 0 || contact.phones_apollo?.length > 0;
-    
-    return `
-        <div class="border rounded-lg p-4">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
-                        ${contact.seniority === 'owner' ? 
-                            '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
-                            ''}
-                        ${contact.seniority === 'c_suite' ? 
-                            '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
-                            ''}
+        function renderContact(contact, companyName) {
+            const isEnriched = enrichedContacts[contact.id];
+            const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
+            const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+            
+            const hasApolloData = contact.emails_apollo?.length > 0 || contact.phones_apollo?.length > 0;
+            
+            return `
+                <div class="border rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
+                                ${contact.seniority === 'owner' ? 
+                                    '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
+                                    ''}
+                                ${contact.seniority === 'c_suite' ? 
+                                    '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
+                                    ''}
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
+                            
+                            ${contact.linkedin_url ? 
+                                `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
+                                    🔗 LinkedIn
+                                </a>` : 
+                                ''}
+
+                            ${hasApolloData ? `
+                                <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                                    <p class="text-xs font-semibold text-blue-800 mb-1">📊 Dados Apollo (grátis)</p>
+                                    
+                                    ${contact.emails_apollo && contact.emails_apollo.length > 0 ? `
+                                        <div class="mb-2">
+                                            <p class="text-xs font-medium text-gray-700">Emails:</p>
+                                            ${contact.emails_apollo.map(email => 
+                                                `<p class="text-sm text-gray-800">✉️ ${email}</p>`
+                                            ).join('')}
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${contact.phones_apollo && contact.phones_apollo.length > 0 ? `
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-700">Telefones:</p>
+                                            ${contact.phones_apollo.map(phone => 
+                                                `<p class="text-sm text-gray-800">📞 ${phone.number} <span class="text-xs text-gray-500">(${phone.type})</span></p>`
+                                            ).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+
+                            ${isEnriched ? `
+                                <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                                    <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido com Lusha</p>
+                                    ${isEnriched.emails && isEnriched.emails.length > 0 ? `
+                                        <div class="mb-2">
+                                            <p class="text-xs font-medium text-gray-700">Emails Lusha:</p>
+                                            ${isEnriched.emails.map(email => 
+                                                `<p class="text-sm text-gray-800">✉️ ${email}</p>`
+                                            ).join('')}
+                                        </div>
+                                    ` : ''}
+                                    ${isEnriched.phones && isEnriched.phones.length > 0 ? `
+                                        <div>
+                                            <p class="text-xs font-medium text-gray-700">Telefones Lusha:</p>
+                                            ${isEnriched.phones.map(phone => 
+                                                `<p class="text-sm text-gray-800">📞 ${phone}</p>`
+                                            ).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${!isEnriched && contact.needs_enrichment ? `
+                            <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
+                                    class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
+                                💰 Enriquecer Lusha
+                            </button>
+                        ` : ''}
                     </div>
-                    <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
-                    
-                    ${contact.linkedin_url ? 
-                        `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
-                            🔗 LinkedIn
-                        </a>` : 
-                        ''}
-
-                    ${hasApolloData ? `
-                        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
-                            <p class="text-xs font-semibold text-blue-800 mb-1">📊 Dados Apollo (grátis)</p>
-                            
-                            ${contact.emails_apollo && contact.emails_apollo.length > 0 ? `
-                                <div class="mb-2">
-                                    <p class="text-xs font-medium text-gray-700">Emails:</p>
-                                    ${contact.emails_apollo.map(email => 
-                                        `<p class="text-sm text-gray-800">✉️ ${email}</p>`
-                                    ).join('')}
-                                </div>
-                            ` : ''}
-                            
-                            ${contact.phones_apollo && contact.phones_apollo.length > 0 ? `
-                                <div>
-                                    <p class="text-xs font-medium text-gray-700">Telefones:</p>
-                                    ${contact.phones_apollo.map(phone => 
-                                        `<p class="text-sm text-gray-800">📞 ${phone.number} <span class="text-xs text-gray-500">(${phone.type})</span></p>`
-                                    ).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    ` : ''}
-
-                    ${isEnriched ? `
-                        <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                            <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido com Lusha</p>
-                            ${isEnriched.emails && isEnriched.emails.length > 0 ? `
-                                <div class="mb-2">
-                                    <p class="text-xs font-medium text-gray-700">Emails Lusha:</p>
-                                    ${isEnriched.emails.map(email => 
-                                        `<p class="text-sm text-gray-800">✉️ ${email}</p>`
-                                    ).join('')}
-                                </div>
-                            ` : ''}
-                            ${isEnriched.phones && isEnriched.phones.length > 0 ? `
-                                <div>
-                                    <p class="text-xs font-medium text-gray-700">Telefones Lusha:</p>
-                                    ${isEnriched.phones.map(phone => 
-                                        `<p class="text-sm text-gray-800">📞 ${phone}</p>`
-                                    ).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    ` : ''}
                 </div>
-
-                ${!isEnriched && contact.needs_enrichment ? `
-                    <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
-                            class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
-                        💰 Enriquecer Lusha
-                    </button>
-                ` : ''}
-            </div>
-        </div>
-    `;
-}
-
-async function enrichContact(contact, companyName) {
-    if (!contact.linkedin_url) {
-        alert('❌ Precisa de LinkedIn URL para enriquecer');
-        return;
-    }
-
-    if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/2-enrich-contact', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contact: {
-                    id: contact.id,
-                    name: contact.name,
-                    company: companyName,
-                    linkedin_url: contact.linkedin_url
-                }
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            enrichedContacts[contact.id] = {
-                emails: data.enriched_data.emails || [],
-                phones: data.enriched_data.phones || [],
-                enriched: true
-            };
-            localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
-            
-            const currentCredits = parseInt(document.getElementById('lusha-credits').textContent);
-            document.getElementById('lusha-credits').textContent = currentCredits + 1;
-            
-            const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
-            const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
-            
-            alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
-            
-            searchCompanies();
-        } else {
-            alert('❌ Falha: ' + data.error);
+            `;
         }
-    } catch (error) {
-        console.error('Enrichment error:', error);
-        alert('Erro ao enriquecer contato');
-    }
-}
+
+        async function enrichContact(contact, companyName) {
+            if (!contact.linkedin_url) {
+                alert('❌ Precisa de LinkedIn URL para enriquecer');
+                return;
+            }
+
+            if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/2-enrich-contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contact: {
+                            id: contact.id,
+                            name: contact.name,
+                            company: companyName,
+                            linkedin_url: contact.linkedin_url
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    enrichedContacts[contact.id] = {
+                        emails: data.enriched_data.emails || [],
+                        phones: data.enriched_data.phones || [],
+                        enriched: true
+                    };
+                    localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
+                    
+                    const currentCredits = parseInt(document.getElementById('lusha-credits').textContent);
+                    document.getElementById('lusha-credits').textContent = currentCredits + 1;
+                    
+                    const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
+                    const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
+                    
+                    alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
+                    
+                    searchCompanies(currentPage);
+                } else {
+                    alert('❌ Falha: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Enrichment error:', error);
+                alert('Erro ao enriquecer contato');
+            }
+        }
     </script>
 </body>
 </html>
