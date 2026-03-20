@@ -1,450 +1,540 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ventapel SC - Prospecção PMEs</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .bg-ventapel { background-color: #3B5BA8; }
-        .text-ventapel { color: #3B5BA8; }
-        .hover\:bg-ventapel:hover { background-color: #2d4680; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventapel SC - Prospecção PMEs</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.bg-ventapel { background-color: #3B5BA8; }
+.text-ventapel { color: #3B5BA8; }
+.hover\:bg-ventapel:hover { background-color: #2d4680; }
+</style>
 </head>
 <body class="bg-gray-50">
-    <!-- Header -->
-    <header class="bg-ventapel shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl">🎯</div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-white">Ventapel SC - Pequenas Empresas</h1>
-                        <p class="text-blue-100 text-sm">Prospecção inteligente em Santa Catarina</p>
-                    </div>
-                </div>
-                <div class="flex gap-4 text-white">
-                    <div class="text-right">
-                        <p class="text-xs text-blue-100">Apollo</p>
-                        <p class="text-xl font-bold" id="apollo-credits">0</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-blue-100">Lusha</p>
-                        <p class="text-xl font-bold text-yellow-300" id="lusha-credits">0</p>
-                    </div>
-                </div>
-            </div>
+
+<!-- Header -->
+<header class="bg-ventapel shadow-lg">
+  <div class="container mx-auto px-4 py-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl">🎯</div>
+        <div>
+          <h1 class="text-2xl font-bold text-white">Ventapel SC - Pequenas Empresas</h1>
+          <p class="text-blue-100 text-sm">Prospecção inteligente em Santa Catarina</p>
         </div>
-    </header>
-
-    <div class="container mx-auto px-4 py-8">
-        <!-- Filters -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-lg font-semibold mb-4">🔍 Filtros de Busca</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">🏙️ Cidade</label>
-                    <select id="city-filter" class="w-full px-4 py-2 border rounded-lg">
-                        <option value="">Todas em SC</option>
-                        <option value="Joinville">Joinville</option>
-                        <option value="Blumenau">Blumenau</option>
-                        <option value="Florianópolis">Florianópolis</option>
-                        <option value="Itajaí">Itajaí</option>
-                        <option value="Balneário Camboriú">Balneário Camboriú</option>
-                        <option value="Chapecó">Chapecó</option>
-                        <option value="Lages">Lages</option>
-                        <option value="Criciúma">Criciúma</option>
-                        <option value="Jaraguá do Sul">Jaraguá do Sul</option>
-                        <option value="São Bento do Sul">São Bento do Sul</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-2">🏭 Indústria</label>
-                    <select id="industry-filter" class="w-full px-4 py-2 border rounded-lg">
-                        <option value="">Todas</option>
-                        <option value="ecommerce">E-commerce / Loja Online</option>
-                        <option value="distributor">Distribuidora</option>
-                        <option value="logistics">Logística / 3PL</option>
-                        <option value="manufacturer">Fabricante / Indústria</option>
-                        <option value="autopeças">Autopeças</option>
-                        <option value="furniture">Móveis</option>
-                        <option value="food">Alimentos</option>
-                        <option value="pharmaceutical">Farmacêutico</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-2">👥 Tamanho</label>
-                    <select id="size-filter" class="w-full px-4 py-2 border rounded-lg">
-                        <option value="">1-500 funcionários</option>
-                        <option value="1,50">1-50</option>
-                        <option value="51,200">51-200</option>
-                        <option value="201,500">201-500</option>
-                    </select>
-                </div>
-            </div>
-
-            <button onclick="searchCompanies(1)" id="search-btn" class="mt-6 w-full bg-ventapel hover:bg-ventapel text-white font-semibold py-3 px-6 rounded-lg">
-                🚀 Buscar Empresas
-            </button>
+      </div>
+      <div class="flex gap-4 text-white">
+        <div class="text-right">
+          <p class="text-xs text-blue-100">Apollo</p>
+          <p class="text-xl font-bold" id="apollo-credits">0</p>
         </div>
-
-        <!-- Pagination Info -->
-        <div id="pagination-info" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-700">
-                        Página <span id="current-page" class="font-bold">1</span> de <span id="total-pages" class="font-bold">1</span>
-                    </p>
-                    <p class="text-xs text-gray-600 mt-1">
-                        <span id="total-results" class="font-semibold">0</span> empresas encontradas no total
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="previousPage()" id="prev-btn" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                        ← Anterior
-                    </button>
-                    <button onclick="nextPage()" id="next-btn" class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Próxima →
-                    </button>
-                </div>
-            </div>
+        <div class="text-right">
+          <p class="text-xs text-blue-100">Lusha</p>
+          <p class="text-xl font-bold text-yellow-300" id="lusha-credits">0</p>
         </div>
-
-        <!-- Results -->
-        <div id="results-container"></div>
-
-        <!-- Bottom Pagination -->
-        <div id="pagination-bottom" class="hidden mt-6 flex justify-center">
-            <div class="flex gap-2">
-                <button onclick="previousPage()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" id="prev-btn-bottom">
-                    ← Anterior
-                </button>
-                <div class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium">
-                    Página <span id="current-page-bottom">1</span> de <span id="total-pages-bottom">1</span>
-                </div>
-                <button onclick="nextPage()" class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" id="next-btn-bottom">
-                    Próxima →
-                </button>
-            </div>
+        <div class="text-right">
+          <p class="text-xs text-blue-100">CRM</p>
+          <p class="text-xl font-bold text-green-300" id="crm-sent-count">0</p>
         </div>
+      </div>
     </div>
+  </div>
+</header>
 
-    <script>
-        let enrichedContacts = JSON.parse(localStorage.getItem('enriched_contacts') || '{}');
-        let currentPage = 1;
-        let totalPages = 1;
-        let totalResults = 0;
-        let currentFilters = {};
+<div class="container mx-auto px-4 py-8">
 
-        async function searchCompanies(page = 1) {
-            const btn = document.getElementById('search-btn');
-            const container = document.getElementById('results-container');
-            
-            btn.disabled = true;
-            btn.innerHTML = '🔄 Buscando...';
-            
-            currentPage = page;
-            
-            const industryValue = document.getElementById('industry-filter').value;
-            
-            currentFilters = {
-                city: document.getElementById('city-filter').value,
-                size: document.getElementById('size-filter').value,
-                keywords: industryValue ? [industryValue] : []
-            };
+  <!-- Filters -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-lg font-semibold mb-4">🔍 Filtros de Busca</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-2">🏙️ Cidade</label>
+        <select id="city-filter" class="w-full px-4 py-2 border rounded-lg">
+          <option value="">Todas em SC</option>
+          <option value="Joinville">Joinville</option>
+          <option value="Blumenau">Blumenau</option>
+          <option value="Florianópolis">Florianópolis</option>
+          <option value="Itajaí">Itajaí</option>
+          <option value="Balneário Camboriú">Balneário Camboriú</option>
+          <option value="Chapecó">Chapecó</option>
+          <option value="Lages">Lages</option>
+          <option value="Criciúma">Criciúma</option>
+          <option value="Jaraguá do Sul">Jaraguá do Sul</option>
+          <option value="São Bento do Sul">São Bento do Sul</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">🏭 Indústria</label>
+        <select id="industry-filter" class="w-full px-4 py-2 border rounded-lg">
+          <option value="">Todas</option>
+          <option value="ecommerce">E-commerce / Loja Online</option>
+          <option value="distributor">Distribuidora</option>
+          <option value="logistics">Logística / 3PL</option>
+          <option value="manufacturer">Fabricante / Indústria</option>
+          <option value="autopeças">Autopeças</option>
+          <option value="furniture">Móveis</option>
+          <option value="food">Alimentos</option>
+          <option value="pharmaceutical">Farmacêutico</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">👥 Tamanho</label>
+        <select id="size-filter" class="w-full px-4 py-2 border rounded-lg">
+          <option value="">1-500 funcionários</option>
+          <option value="1,50">1-50</option>
+          <option value="51,200">51-200</option>
+          <option value="201,500">201-500</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="searchCompanies(1)" id="search-btn"
+      class="mt-6 w-full bg-ventapel hover:bg-ventapel text-white font-semibold py-3 px-6 rounded-lg">
+      🚀 Buscar Empresas
+    </button>
+  </div>
 
-            console.log('Filters:', currentFilters, 'Page:', page);
+  <!-- Pagination Info -->
+  <div id="pagination-info" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-gray-700">
+          Página <span id="current-page" class="font-bold">1</span> de <span id="total-pages" class="font-bold">1</span>
+        </p>
+        <p class="text-xs text-gray-600 mt-1">
+          <span id="total-results" class="font-semibold">0</span> empresas encontradas no total
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="previousPage()" id="prev-btn"
+          class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          ← Anterior
+        </button>
+        <button onclick="nextPage()" id="next-btn"
+          class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          Próxima →
+        </button>
+      </div>
+    </div>
+  </div>
 
-            try {
-                const response = await fetch('/api/1-search-small-companies', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filters: currentFilters, page: page })
-                });
-                
-                const data = await response.json();
-                
-                console.log('Response:', data);
-                
-                if (data.success) {
-                    document.getElementById('apollo-credits').textContent = data.apollo_credits_used || 0;
-                    
-                    totalPages = data.total_pages || 1;
-                    totalResults = data.total || 0;
-                    
-                    renderCompanies(data.organizations);
-                    updatePagination();
-                } else {
-                    alert('Erro na busca: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                alert('Erro na busca. Verifique o console.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '🚀 Buscar Empresas';
-            }
+  <!-- Results -->
+  <div id="results-container"></div>
+
+  <!-- Bottom Pagination -->
+  <div id="pagination-bottom" class="hidden mt-6 flex justify-center">
+    <div class="flex gap-2">
+      <button onclick="previousPage()"
+        class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        id="prev-btn-bottom">
+        ← Anterior
+      </button>
+      <div class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium">
+        Página <span id="current-page-bottom">1</span> de <span id="total-pages-bottom">1</span>
+      </div>
+      <button onclick="nextPage()"
+        class="px-4 py-2 bg-ventapel text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        id="next-btn-bottom">
+        Próxima →
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
+let enrichedContacts = JSON.parse(localStorage.getItem('enriched_contacts') || '{}');
+let crmSentContacts  = JSON.parse(localStorage.getItem('crm_sent_contacts')  || '{}');
+let currentPage  = 1;
+let totalPages   = 1;
+let totalResults = 0;
+let currentFilters = {};
+
+// ─── BÚSQUEDA ─────────────────────────────────────────────────────────────────
+async function searchCompanies(page = 1) {
+  const btn       = document.getElementById('search-btn');
+  const container = document.getElementById('results-container');
+
+  btn.disabled = true;
+  btn.innerHTML = '🔄 Buscando...';
+  currentPage = page;
+
+  const industryValue = document.getElementById('industry-filter').value;
+  currentFilters = {
+    city:     document.getElementById('city-filter').value,
+    size:     document.getElementById('size-filter').value,
+    keywords: industryValue ? [industryValue] : []
+  };
+
+  try {
+    const response = await fetch('/api/1-search-small-companies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filters: currentFilters, page })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      document.getElementById('apollo-credits').textContent = data.apollo_credits_used || 0;
+      totalPages   = data.total_pages || 1;
+      totalResults = data.total      || 0;
+      renderCompanies(data.organizations);
+      updatePagination();
+    } else {
+      alert('Erro na busca: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Search error:', error);
+    alert('Erro na busca. Verifique o console.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Buscar Empresas';
+  }
+}
+
+// ─── PAGINACIÓN ───────────────────────────────────────────────────────────────
+function updatePagination() {
+  const paginationInfo   = document.getElementById('pagination-info');
+  const paginationBottom = document.getElementById('pagination-bottom');
+
+  if (totalPages > 1) {
+    paginationInfo.classList.remove('hidden');
+    paginationBottom.classList.remove('hidden');
+
+    document.getElementById('current-page').textContent        = currentPage;
+    document.getElementById('total-pages').textContent         = totalPages;
+    document.getElementById('current-page-bottom').textContent = currentPage;
+    document.getElementById('total-pages-bottom').textContent  = totalPages;
+    document.getElementById('total-results').textContent       = totalResults;
+
+    const prevBtns = [document.getElementById('prev-btn'), document.getElementById('prev-btn-bottom')];
+    const nextBtns = [document.getElementById('next-btn'), document.getElementById('next-btn-bottom')];
+    prevBtns.forEach(b => b.disabled = currentPage === 1);
+    nextBtns.forEach(b => b.disabled = currentPage >= totalPages);
+  } else {
+    paginationInfo.classList.add('hidden');
+    paginationBottom.classList.add('hidden');
+  }
+}
+
+function previousPage() {
+  if (currentPage > 1) {
+    searchCompanies(currentPage - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    searchCompanies(currentPage + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ─── RENDER EMPRESAS ──────────────────────────────────────────────────────────
+function renderCompanies(companies) {
+  const container = document.getElementById('results-container');
+
+  if (!companies || companies.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-16">
+        <div class="text-6xl mb-4">🔍</div>
+        <h3 class="text-xl font-semibold mb-2">Nenhuma empresa encontrada</h3>
+        <p class="text-gray-600">Ajuste os filtros e tente novamente</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas nesta página</h2>
+    <div class="space-y-6">
+      ${companies.map(company => renderCompany(company)).join('')}
+    </div>`;
+
+  // Restaurar estado de botones CRM ya enviados
+  restoreCRMButtonStates();
+  updateCRMCounter();
+}
+
+// ─── RENDER EMPRESA ───────────────────────────────────────────────────────────
+function renderCompany(company) {
+  const socialLinks = [];
+  if (company.website)   socialLinks.push(`<a href="${company.website}"   target="_blank" class="text-blue-100 hover:text-white underline">🌐 Website</a>`);
+  if (company.linkedin)  socialLinks.push(`<a href="${company.linkedin}"  target="_blank" class="text-blue-100 hover:text-white underline">💼 LinkedIn</a>`);
+  if (company.instagram) socialLinks.push(`<a href="${company.instagram}" target="_blank" class="text-blue-100 hover:text-white underline">📸 Instagram</a>`);
+  if (company.facebook)  socialLinks.push(`<a href="${company.facebook}"  target="_blank" class="text-blue-100 hover:text-white underline">👥 Facebook</a>`);
+
+  return `
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <h3 class="text-2xl font-bold mb-2">${company.name}</h3>
+            <div class="flex gap-3 text-sm flex-wrap mb-2">
+              ${company.city     ? `<span>📍 ${company.city}, SC</span>`          : ''}
+              ${company.employees ? `<span>👥 ${company.employees} funcionários</span>` : ''}
+              ${company.industry  ? `<span>🏭 ${company.industry}</span>`            : ''}
+            </div>
+            ${company.phone ? `<div class="mb-2">📞 ${company.phone}</div>` : ''}
+            ${socialLinks.length > 0 ? `
+              <div class="flex gap-3 text-sm flex-wrap">
+                ${socialLinks.join(' • ')}
+              </div>` : ''}
+          </div>
+          ${company.website ? `
+            <a href="${company.website}" target="_blank"
+              class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 whitespace-nowrap ml-4">
+              🌐 Visitar Site
+            </a>` : ''}
+        </div>
+      </div>
+
+      <div class="p-6">
+        <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts ? company.contacts.length : 0})</h4>
+        ${!company.contacts || company.contacts.length === 0
+          ? '<p class="text-gray-500 italic">Nenhum decisor encontrado</p>'
+          : `<div class="space-y-3">${company.contacts.map(contact => renderContact(contact, company)).join('')}</div>`
         }
+      </div>
+    </div>`;
+}
 
-        function updatePagination() {
-            const paginationInfo = document.getElementById('pagination-info');
-            const paginationBottom = document.getElementById('pagination-bottom');
-            
-            if (totalPages > 1) {
-                paginationInfo.classList.remove('hidden');
-                paginationBottom.classList.remove('hidden');
-                
-                // Update all page indicators
-                document.getElementById('current-page').textContent = currentPage;
-                document.getElementById('total-pages').textContent = totalPages;
-                document.getElementById('current-page-bottom').textContent = currentPage;
-                document.getElementById('total-pages-bottom').textContent = totalPages;
-                document.getElementById('total-results').textContent = totalResults;
-                
-                // Enable/disable buttons
-                const prevButtons = [document.getElementById('prev-btn'), document.getElementById('prev-btn-bottom')];
-                const nextButtons = [document.getElementById('next-btn'), document.getElementById('next-btn-bottom')];
-                
-                prevButtons.forEach(btn => btn.disabled = currentPage === 1);
-                nextButtons.forEach(btn => btn.disabled = currentPage >= totalPages);
-            } else {
-                paginationInfo.classList.add('hidden');
-                paginationBottom.classList.add('hidden');
-            }
-        }
+// ─── RENDER CONTACTO ──────────────────────────────────────────────────────────
+function renderContact(contact, company) {
+  const isEnriched    = enrichedContacts[contact.id];
+  const contactJson   = JSON.stringify(contact).replace(/"/g, '&quot;');
+  const companyJson   = JSON.stringify({
+    name:                    company.name,
+    city:                    company.city     || '',
+    industry:                company.industry || '',
+    estimated_num_employees: company.employees || company.estimated_num_employees || 0,
+    employees:               company.employees || 0
+  }).replace(/"/g, '&quot;');
 
-        function previousPage() {
-            if (currentPage > 1) {
-                searchCompanies(currentPage - 1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
+  const hasApolloData = contact.emails_apollo?.length > 0 || contact.phones_apollo?.length > 0;
 
-        function nextPage() {
-            if (currentPage < totalPages) {
-                searchCompanies(currentPage + 1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
+  // Estado del botón CRM según localStorage
+  const sentData    = crmSentContacts[contact.id];
+  const alreadySent = !!sentData;
 
-        function renderCompanies(companies) {
-            const container = document.getElementById('results-container');
-            
-            if (!companies || companies.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16">
-                        <div class="text-6xl mb-4">🔍</div>
-                        <h3 class="text-xl font-semibold mb-2">Nenhuma empresa encontrada</h3>
-                        <p class="text-gray-600">Ajuste os filtros e tente novamente</p>
-                    </div>
-                `;
-                return;
-            }
+  return `
+    <div class="border rounded-lg p-4">
+      <div class="flex justify-between items-start">
 
-            container.innerHTML = `
-                <h2 class="text-xl font-bold mb-4">📊 ${companies.length} empresas nesta página</h2>
-                <div class="space-y-6">
-                    ${companies.map(company => renderCompany(company)).join('')}
-                </div>
-            `;
-        }
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
+            ${contact.seniority === 'owner'   ? '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>'  : ''}
+            ${contact.seniority === 'c_suite' ? '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">⚡ CEO</span>'    : ''}
+          </div>
+          <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
 
-        function renderCompany(company) {
-            const socialLinks = [];
-            if (company.website) {
-                socialLinks.push(`<a href="${company.website}" target="_blank" class="text-blue-100 hover:text-white underline">🌐 Website</a>`);
-            }
-            if (company.linkedin) {
-                socialLinks.push(`<a href="${company.linkedin}" target="_blank" class="text-blue-100 hover:text-white underline">💼 LinkedIn</a>`);
-            }
-            if (company.instagram) {
-                socialLinks.push(`<a href="${company.instagram}" target="_blank" class="text-blue-100 hover:text-white underline">📸 Instagram</a>`);
-            }
-            if (company.facebook) {
-                socialLinks.push(`<a href="${company.facebook}" target="_blank" class="text-blue-100 hover:text-white underline">👥 Facebook</a>`);
-            }
-            
-            return `
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-white">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <h3 class="text-2xl font-bold mb-2">${company.name}</h3>
-                                <div class="flex gap-3 text-sm flex-wrap mb-2">
-                                    ${company.city ? `<span>📍 ${company.city}, SC</span>` : ''}
-                                    ${company.employees ? `<span>👥 ${company.employees} funcionários</span>` : ''}
-                                    ${company.industry ? `<span>🏭 ${company.industry}</span>` : ''}
-                                </div>
-                                ${company.phone ? `<div class="mb-2">📞 ${company.phone}</div>` : ''}
-                                
-                                ${socialLinks.length > 0 ? `
-                                    <div class="flex gap-3 text-sm flex-wrap">
-                                        ${socialLinks.join(' • ')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                            
-                            ${company.website ? `
-                                <a href="${company.website}" target="_blank" 
-                                   class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 whitespace-nowrap ml-4">
-                                    🌐 Visitar Site
-                                </a>
-                            ` : ''}
-                        </div>
-                    </div>
+          ${contact.linkedin_url ? `
+            <a href="${contact.linkedin_url}" target="_blank"
+              class="text-blue-600 text-sm hover:underline block mb-2">
+              🔗 LinkedIn
+            </a>` : ''}
 
-                    <div class="p-6">
-                        <h4 class="font-semibold mb-4">👤 Decisores (${company.contacts ? company.contacts.length : 0})</h4>
-                        ${!company.contacts || company.contacts.length === 0 ? 
-                            '<p class="text-gray-500 italic">Nenhum decisor encontrado</p>' :
-                            `<div class="space-y-3">${company.contacts.map(contact => 
-                                renderContact(contact, company.name)).join('')}</div>`
-                        }
-                    </div>
-                </div>
-            `;
-        }
+          ${hasApolloData ? `
+            <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+              <p class="text-xs font-semibold text-blue-800 mb-1">📊 Dados Apollo (grátis)</p>
+              ${contact.emails_apollo?.length > 0 ? `
+                <div class="mb-2">
+                  <p class="text-xs font-medium text-gray-700">Emails:</p>
+                  ${contact.emails_apollo.map(email => `<p class="text-sm text-gray-800">✉️ ${email}</p>`).join('')}
+                </div>` : ''}
+              ${contact.phones_apollo?.length > 0 ? `
+                <div>
+                  <p class="text-xs font-medium text-gray-700">Telefones:</p>
+                  ${contact.phones_apollo.map(phone => `<p class="text-sm text-gray-800">📞 ${phone.number} <span class="text-xs text-gray-500">(${phone.type})</span></p>`).join('')}
+                </div>` : ''}
+            </div>` : ''}
 
-        function renderContact(contact, companyName) {
-            const isEnriched = enrichedContacts[contact.id];
-            const contactJson = JSON.stringify(contact).replace(/"/g, '&quot;');
-            const companyNameEscaped = companyName.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-            
-            const hasApolloData = contact.emails_apollo?.length > 0 || contact.phones_apollo?.length > 0;
-            
-            return `
-                <div class="border rounded-lg p-4">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h5 class="font-semibold">${contact.name || 'Sem nome'}</h5>
-                                ${contact.seniority === 'owner' ? 
-                                    '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">👑 OWNER</span>' : 
-                                    ''}
-                                ${contact.seniority === 'c_suite' ? 
-                                    '<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">CEO</span>' : 
-                                    ''}
-                            </div>
-                            <p class="text-sm text-gray-600 mb-2">${contact.title || ''}</p>
-                            
-                            ${contact.linkedin_url ? 
-                                `<a href="${contact.linkedin_url}" target="_blank" class="text-blue-600 text-sm hover:underline block mb-2">
-                                    🔗 LinkedIn
-                                </a>` : 
-                                ''}
+          ${isEnriched ? `
+            <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+              <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido com Lusha</p>
+              ${isEnriched.emails?.length > 0 ? `
+                <div class="mb-2">
+                  <p class="text-xs font-medium text-gray-700">Emails Lusha:</p>
+                  ${isEnriched.emails.map(email => `<p class="text-sm text-gray-800">✉️ ${email}</p>`).join('')}
+                </div>` : ''}
+              ${isEnriched.phones?.length > 0 ? `
+                <div>
+                  <p class="text-xs font-medium text-gray-700">Telefones Lusha:</p>
+                  ${isEnriched.phones.map(phone => `<p class="text-sm text-gray-800">📞 ${phone}</p>`).join('')}
+                </div>` : ''}
+            </div>` : ''}
+        </div>
 
-                            ${hasApolloData ? `
-                                <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
-                                    <p class="text-xs font-semibold text-blue-800 mb-1">📊 Dados Apollo (grátis)</p>
-                                    
-                                    ${contact.emails_apollo && contact.emails_apollo.length > 0 ? `
-                                        <div class="mb-2">
-                                            <p class="text-xs font-medium text-gray-700">Emails:</p>
-                                            ${contact.emails_apollo.map(email => 
-                                                `<p class="text-sm text-gray-800">✉️ ${email}</p>`
-                                            ).join('')}
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${contact.phones_apollo && contact.phones_apollo.length > 0 ? `
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-700">Telefones:</p>
-                                            ${contact.phones_apollo.map(phone => 
-                                                `<p class="text-sm text-gray-800">📞 ${phone.number} <span class="text-xs text-gray-500">(${phone.type})</span></p>`
-                                            ).join('')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            ` : ''}
+        <!-- Botones de acción -->
+        <div class="ml-4 flex flex-col gap-2">
 
-                            ${isEnriched ? `
-                                <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                                    <p class="text-xs font-semibold text-green-800 mb-1">✅ Enriquecido com Lusha</p>
-                                    ${isEnriched.emails && isEnriched.emails.length > 0 ? `
-                                        <div class="mb-2">
-                                            <p class="text-xs font-medium text-gray-700">Emails Lusha:</p>
-                                            ${isEnriched.emails.map(email => 
-                                                `<p class="text-sm text-gray-800">✉️ ${email}</p>`
-                                            ).join('')}
-                                        </div>
-                                    ` : ''}
-                                    ${isEnriched.phones && isEnriched.phones.length > 0 ? `
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-700">Telefones Lusha:</p>
-                                            ${isEnriched.phones.map(phone => 
-                                                `<p class="text-sm text-gray-800">📞 ${phone}</p>`
-                                            ).join('')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
+          ${!isEnriched && contact.needs_enrichment ? `
+            <button onclick='enrichContact(${contactJson}, "${company.name.replace(/'/g, "\\'")}")'
+              class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
+              💰 Enriquecer Lusha
+            </button>` : ''}
 
-                        ${!isEnriched && contact.needs_enrichment ? `
-                            <button onclick='enrichContact(${contactJson}, "${companyNameEscaped}")' 
-                                    class="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
-                                💰 Enriquecer Lusha
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }
+          ${alreadySent
+            ? `<button disabled
+                id="crm-btn-${contact.id}"
+                class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed"
+                title="Enviado em ${new Date(sentData.sentAt).toLocaleDateString('pt-BR')} | Oportunidade #${sentData.opportunityId}">
+                ✅ Enviado!
+              </button>`
+            : `<button id="crm-btn-${contact.id}"
+                onclick='sendToCRM(${contactJson}, ${companyJson})'
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all">
+                📤 Enviar ao CRM
+              </button>`
+          }
 
-        async function enrichContact(contact, companyName) {
-            if (!contact.linkedin_url) {
-                alert('❌ Precisa de LinkedIn URL para enriquecer');
-                return;
-            }
+        </div>
+      </div>
+    </div>`;
+}
 
-            if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) {
-                return;
-            }
+// ─── ENRICH LUSHA (sin cambios respecto al original) ─────────────────────────
+async function enrichContact(contact, companyName) {
+  if (!contact.linkedin_url) {
+    alert('❌ Precisa de LinkedIn URL para enriquecer');
+    return;
+  }
+  if (!confirm(`Usar 1 crédito Lusha para enriquecer ${contact.name}?`)) return;
 
-            try {
-                const response = await fetch('/api/2-enrich-contact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contact: {
-                            id: contact.id,
-                            name: contact.name,
-                            company: companyName,
-                            linkedin_url: contact.linkedin_url
-                        }
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    enrichedContacts[contact.id] = {
-                        emails: data.enriched_data.emails || [],
-                        phones: data.enriched_data.phones || [],
-                        enriched: true
-                    };
-                    localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
-                    
-                    const currentCredits = parseInt(document.getElementById('lusha-credits').textContent);
-                    document.getElementById('lusha-credits').textContent = currentCredits + 1;
-                    
-                    const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
-                    const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
-                    
-                    alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
-                    
-                    searchCompanies(currentPage);
-                } else {
-                    alert('❌ Falha: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Enrichment error:', error);
-                alert('Erro ao enriquecer contato');
-            }
-        }
-    </script>
+  try {
+    const response = await fetch('/api/2-enrich-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contact: { id: contact.id, name: contact.name, company: companyName, linkedin_url: contact.linkedin_url }
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      enrichedContacts[contact.id] = {
+        emails: data.enriched_data.emails || [],
+        phones: data.enriched_data.phones || [],
+        enriched: true
+      };
+      localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
+
+      const cur = parseInt(document.getElementById('lusha-credits').textContent);
+      document.getElementById('lusha-credits').textContent = cur + 1;
+
+      const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
+      const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
+      alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
+      searchCompanies(currentPage);
+    } else {
+      alert('❌ Falha: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Enrichment error:', error);
+    alert('Erro ao enriquecer contato');
+  }
+}
+
+// ─── ENVIAR AL CRM ────────────────────────────────────────────────────────────
+async function sendToCRM(contact, companyPartial) {
+  const btnId = `crm-btn-${contact.id}`;
+  const btn   = document.getElementById(btnId);
+  if (!btn) return;
+
+  // Enriquecer contact con datos de Lusha si están disponibles
+  const lushaData = enrichedContacts[contact.id];
+  if (lushaData) {
+    contact = {
+      ...contact,
+      all_emails: lushaData.emails || [],
+      all_phones: (lushaData.phones || []).map(p => ({ number: p, type: 'unknown', source: 'Lusha' }))
+    };
+  }
+
+  // Feedback: cargando
+  btn.disabled  = true;
+  btn.innerHTML = '⏳ Enviando...';
+  btn.className = 'bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
+
+  try {
+    const response = await fetch('/api/5-send-to-crm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company: companyPartial, contact })
+    });
+
+    const data = await response.json();
+
+    if (data.already_exists) {
+      // Ya existe en CRM
+      btn.innerHTML = '⚠️ Já no CRM';
+      btn.className = 'bg-orange-400 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
+      const dup = data.duplicates?.[0];
+      btn.title = dup
+        ? `Oportunidade existente: "${dup.name}" (Etapa ${dup.stage})`
+        : (data.message || 'Empresa já existe no CRM');
+      return;
+    }
+
+    if (data.success) {
+      const val    = data.valueEstimate;
+      const valStr = val ? ` | R$${Math.round(val.annualValueBRL / 1000)}k/ano` : '';
+
+      btn.innerHTML = '✅ Enviado!';
+      btn.className = 'bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
+      btn.title = `Oportunidade #${data.opportunity.id} criada${valStr} | Prioridade: ${data.priority}`;
+
+      // Persistir en localStorage
+      crmSentContacts[contact.id] = {
+        opportunityId: data.opportunity.id,
+        sentAt:        new Date().toISOString(),
+        value:         val
+      };
+      localStorage.setItem('crm_sent_contacts', JSON.stringify(crmSentContacts));
+      updateCRMCounter();
+
+    } else {
+      throw new Error(data.error || 'Erro desconhecido');
+    }
+
+  } catch (error) {
+    console.error('Erro ao enviar para CRM:', error);
+    btn.disabled  = false;
+    btn.innerHTML = '❌ Tentar novamente';
+    btn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all';
+    btn.title     = error.message;
+  }
+}
+
+// ─── HELPERS CRM ─────────────────────────────────────────────────────────────
+
+// Restaurar estado visual de botones ya enviados (tras re-render)
+function restoreCRMButtonStates() {
+  crmSentContacts = JSON.parse(localStorage.getItem('crm_sent_contacts') || '{}');
+  Object.entries(crmSentContacts).forEach(([contactId, data]) => {
+    const btn = document.getElementById(`crm-btn-${contactId}`);
+    if (btn) {
+      btn.disabled  = true;
+      btn.innerHTML = '✅ Enviado!';
+      btn.className = 'bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
+      btn.title     = `Oportunidade #${data.opportunityId} | ${new Date(data.sentAt).toLocaleDateString('pt-BR')}`;
+    }
+  });
+}
+
+// Actualizar contador del header
+function updateCRMCounter() {
+  const count = Object.keys(JSON.parse(localStorage.getItem('crm_sent_contacts') || '{}')).length;
+  document.getElementById('crm-sent-count').textContent = count;
+}
+
+// Inicializar contador al cargar
+updateCRMCounter();
+</script>
+
 </body>
 </html>
