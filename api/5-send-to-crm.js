@@ -204,7 +204,7 @@ module.exports = async function(req, res) {
         const opp = {
             name:            opportunityName,
             client:          company.name,
-            vendor:          '',                                    // sin asignar
+            vendor:          null,                                 // sin asignar - abierto para asumir
             value:           val.annualValueBRL,
             stage:           1,                                     // Etapa 1: Prospecção
             priority:        priority,
