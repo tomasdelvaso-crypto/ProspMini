@@ -13,6 +13,23 @@
 </head>
 <body class="bg-gray-50">
 
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay" class="fixed inset-0 bg-gradient-to-br from-blue-900 to-indigo-900 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">🎯</div>
+      <h2 class="text-2xl font-bold text-gray-800">Ventapel SC</h2>
+      <p class="text-sm text-gray-500">Faça login com sua conta Ventapel</p>
+    </div>
+    <div id="login-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4"></div>
+    <input id="login-email" type="email" placeholder="Email" class="w-full border rounded-lg px-4 py-3 mb-3 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+    <input id="login-password" type="password" placeholder="Senha" class="w-full border rounded-lg px-4 py-3 mb-4 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+    <button id="login-btn" onclick="doLogin()" class="w-full py-3 bg-ventapel text-white rounded-xl font-bold text-sm hover:bg-ventapel transition-all">
+      Entrar
+    </button>
+  </div>
+</div>
+
 <!-- Header -->
 <header class="bg-ventapel shadow-lg">
   <div class="container mx-auto px-4 py-6">
@@ -34,8 +51,12 @@
           <p class="text-xl font-bold text-yellow-300" id="lusha-credits">0</p>
         </div>
         <div class="text-right">
-          <p class="text-xs text-blue-100">CRM</p>
+          <p class="text-xs text-blue-100">Cadência</p>
           <p class="text-xl font-bold text-green-300" id="crm-sent-count">0</p>
+        </div>
+        <div class="text-right border-l border-blue-300 pl-4">
+          <p class="text-xs text-blue-100" id="user-name">—</p>
+          <button onclick="doLogout()" class="text-blue-200 hover:text-white text-xs underline">Sair</button>
         </div>
       </div>
     </div>
@@ -143,6 +164,58 @@
 </div>
 
 <script>
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://wtrbvgqxgcfjacqcndmb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0cmJ2Z3F4Z2NmamFjcWNuZG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU5NzI4NjcsImV4cCI6MjA0MTU0ODg2N30.WFSCNfUuntVyQdev2mDX_tnGf-xWFRMGHHPHmGCDAx4';
+let currentSession = null;
+let currentVendorName = null;
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errDiv = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errDiv.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const resp = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.access_token) throw new Error(data.error_description || data.msg || 'Credenciais inválidas');
+    currentSession = data;
+    const vendorResp = await fetch(SUPABASE_URL + '/rest/v1/vendors?auth_id=eq.' + data.user.id + '&select=name&is_active=eq.true', {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + data.access_token }
+    });
+    const vendors = await vendorResp.json();
+    currentVendorName = vendors?.[0]?.name || email.split('@')[0];
+    document.getElementById('user-name').textContent = '👤 ' + currentVendorName;
+    document.getElementById('login-overlay').style.display = 'none';
+    sessionStorage.setItem('prospmini_session', JSON.stringify({ token: data.access_token, vendor: currentVendorName, userId: data.user.id }));
+  } catch (e) {
+    errDiv.textContent = e.message; errDiv.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+}
+
+function doLogout() {
+  currentSession = null; currentVendorName = null;
+  sessionStorage.removeItem('prospmini_session');
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+function checkAuth() {
+  const saved = sessionStorage.getItem('prospmini_session');
+  if (saved) {
+    const s = JSON.parse(saved);
+    currentSession = s; currentVendorName = s.vendor;
+    document.getElementById('user-name').textContent = '👤 ' + s.vendor;
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+}
+checkAuth();
+
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 let enrichedContacts = JSON.parse(localStorage.getItem('enriched_contacts') || '{}');
 let crmSentContacts  = JSON.parse(localStorage.getItem('crm_sent_contacts')  || '{}');
@@ -380,14 +453,14 @@ function renderContact(contact, company) {
           ${alreadySent
             ? `<button disabled
                 id="crm-btn-${contact.id}"
-                class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed"
-                title="Enviado em ${new Date(sentData.sentAt).toLocaleDateString('pt-BR')} | Oportunidade #${sentData.opportunityId}">
-                ✅ Enviado!
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed"
+                title="Enviado em ${new Date(sentData.sentAt).toLocaleDateString('pt-BR')} | Lead #${sentData.opportunityId}">
+                ✅ Na Cadência!
               </button>`
             : `<button id="crm-btn-${contact.id}"
-                onclick='sendToCRM(${contactJson}, ${companyJson})'
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all">
-                📤 Enviar ao CRM
+                onclick='sendToCadencia(${contactJson}, ${companyJson})'
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all">
+                📞 Enviar para Cadência
               </button>`
           }
 
@@ -439,8 +512,9 @@ async function enrichContact(contact, companyName) {
   }
 }
 
-// ─── ENVIAR AL CRM ────────────────────────────────────────────────────────────
-async function sendToCRM(contact, companyPartial) {
+// ─── ENVIAR PARA CADÊNCIA ────────────────────────────────────────────────────
+async function sendToCadencia(contact, companyPartial) {
+  if (!currentVendorName) { alert('❌ Faça login primeiro.'); return; }
   const btnId = `crm-btn-${contact.id}`;
   const btn   = document.getElementById(btnId);
   if (!btn) return;
@@ -455,54 +529,47 @@ async function sendToCRM(contact, companyPartial) {
     };
   }
 
-  // Feedback: cargando
   btn.disabled  = true;
   btn.innerHTML = '⏳ Enviando...';
   btn.className = 'bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
 
   try {
-    const response = await fetch('/api/5-send-to-crm', {
+    const saved = JSON.parse(sessionStorage.getItem('prospmini_session') || '{}');
+    const response = await fetch('/api/6-send-to-cadencia', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company: companyPartial, contact })
+      body: JSON.stringify({
+        company: companyPartial,
+        contact,
+        vendor_name: currentVendorName,
+        vendor_auth_id: saved.userId,
+        source: 'prospmini'
+      })
     });
 
     const data = await response.json();
 
-    if (data.already_exists) {
-      // Ya existe en CRM
-      btn.innerHTML = '⚠️ Já no CRM';
-      btn.className = 'bg-orange-400 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
-      const dup = data.duplicates?.[0];
-      btn.title = dup
-        ? `Oportunidade existente: "${dup.name}" (Etapa ${dup.stage})`
-        : (data.message || 'Empresa já existe no CRM');
-      return;
-    }
-
-    if (data.success) {
-      const val    = data.valueEstimate;
-      const valStr = val ? ` | R$${Math.round(val.annualValueBRL / 1000)}k/ano` : '';
-
-      btn.innerHTML = '✅ Enviado!';
-      btn.className = 'bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
-      btn.title = `Oportunidade #${data.opportunity.id} criada${valStr} | Prioridade: ${data.priority}`;
-
-      // Persistir en localStorage
-      crmSentContacts[contact.id] = {
-        opportunityId: data.opportunity.id,
-        sentAt:        new Date().toISOString(),
-        value:         val
-      };
-      localStorage.setItem('crm_sent_contacts', JSON.stringify(crmSentContacts));
-      updateCRMCounter();
-
-    } else {
+    if (!response.ok || !data.success) {
       throw new Error(data.error || 'Erro desconhecido');
     }
 
+    let title = `Lead #${data.lead.id} na Cadência`;
+    if (data.collision) title += ` | ⚠️ ${data.collision.taken_by} já prospecta esta empresa`;
+
+    btn.innerHTML = '✅ Na Cadência!';
+    btn.className = 'bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap cursor-not-allowed transition-all';
+    btn.title = title;
+
+    // Persistir en localStorage
+    crmSentContacts[contact.id] = {
+      opportunityId: data.lead.id,
+      sentAt: new Date().toISOString(),
+    };
+    localStorage.setItem('crm_sent_contacts', JSON.stringify(crmSentContacts));
+    updateCRMCounter();
+
   } catch (error) {
-    console.error('Erro ao enviar para CRM:', error);
+    console.error('Erro ao enviar para Cadência:', error);
     btn.disabled  = false;
     btn.innerHTML = '❌ Tentar novamente';
     btn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all';
