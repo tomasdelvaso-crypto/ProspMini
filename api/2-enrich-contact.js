@@ -52,10 +52,38 @@ module.exports = async (req, res) => {
         // Intentar cache primero — shared entre vendedores, TTL 30 días
         const cached = await lushaCache.tryGet(params);
         if (cached.hit) {
+            const d = cached.data;
+
+            // Normalizar al shape ProspMini por si el cache vino del PROSPECTOR grande.
+            let enriched_data = d.enriched_data;
+            if (!enriched_data) {
+                const emails = (d.all_emails || []).map(e => typeof e === 'string' ? e : e.email);
+                const phones_detailed = (d.all_phones || []).map(p => ({
+                    number: typeof p === 'string' ? p : p.number,
+                    type: p.type || 'unknown'
+                }));
+                enriched_data = {
+                    emails,
+                    phones: phones_detailed.map(p => p.number),
+                    phones_detailed,
+                    primary_email: emails[0] || null,
+                    primary_phone: phones_detailed[0]?.number || null,
+                    phone_summary: {
+                        total: phones_detailed.length,
+                        mobile: phones_detailed.filter(p => p.type === 'mobile').length,
+                        direct: phones_detailed.filter(p => p.type === 'direct').length,
+                        work: phones_detailed.filter(p => p.type === 'work').length
+                    }
+                };
+            }
+
             return res.status(200).json({
-                ...cached.data,
+                success: true,
+                contact_id: req.body.contact?.id,
+                enriched_data,
                 from_cache: true,
-                lusha_credit_used: false  // NO quemar crédito si vino del cache
+                lusha_credit_used: false,  // NO quemar crédito si vino del cache
+                timestamp: new Date().toISOString()
             });
         }
 
