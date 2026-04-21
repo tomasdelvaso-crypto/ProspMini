@@ -1,4 +1,28 @@
 const axios = require('axios');
+const apolloCache = require('./_apollo-cache');
+
+async function fetchApolloOrCache(endpoint, url, payload, apiKey) {
+    const cached = await apolloCache.tryGet(endpoint, payload);
+    if (cached.hit) return cached.data;
+
+    const response = await axios.post(url, payload, {
+        headers: {
+            'X-Api-Key': apiKey,
+            'Content-Type': 'application/json'
+        },
+        timeout: 30000
+    });
+
+    await apolloCache.set(
+        cached.cacheKey,
+        endpoint,
+        cached.normalized,
+        response.data,
+        response.data?.pagination?.total_entries
+    );
+
+    return response.data;
+}
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -39,20 +63,15 @@ module.exports = async (req, res) => {
 
         console.log('🔍 Apollo search:', JSON.stringify(apolloPayload, null, 2));
 
-        const companiesResponse = await axios.post(
+        const companiesData = await fetchApolloOrCache(
+            'mixed_companies/search',
             'https://api.apollo.io/api/v1/mixed_companies/search',
             apolloPayload,
-            {
-                headers: {
-                    'X-Api-Key': apiKey,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 30000
-            }
+            apiKey
         );
 
-        const organizations = companiesResponse.data?.organizations || [];
-        const pagination = companiesResponse.data?.pagination || {};
+        const organizations = companiesData?.organizations || [];
+        const pagination = companiesData?.pagination || {};
         
         console.log(`✅ Apollo: ${organizations.length} companies found`);
 
@@ -101,19 +120,14 @@ module.exports = async (req, res) => {
 
         console.log(`📞 Fetching contacts for ${companyIds.length} companies...`);
 
-        const contactsResponse = await axios.post(
+        const contactsData = await fetchApolloOrCache(
+            'mixed_people/search',
             'https://api.apollo.io/api/v1/mixed_people/search',
             contactsPayload,
-            {
-                headers: {
-                    'X-Api-Key': apiKey,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 30000
-            }
+            apiKey
         );
 
-        const allContacts = contactsResponse.data?.people || [];
+        const allContacts = contactsData?.people || [];
         console.log(`✅ Retrieved ${allContacts.length} contacts`);
 
         // STEP 3: Extract ALL emails and phones from Apollo
