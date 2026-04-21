@@ -26,10 +26,21 @@ export default async function handler(req, res) {
     const collision = collisionData?.[0]?.is_taken ? collisionData[0] : null;
 
     // 2. Build email/phone from enriched or apollo data
-    const email = contact?.email
-      || contact?.all_emails?.[0]?.email || contact?.all_emails?.[0]
-      || contact?.emails_apollo?.[0]
-      || null;
+    // Filter placeholder/invalid emails from Apollo ("email_not_unlocked@domain.com")
+    const isValidEmail = (e) => {
+      if (!e || typeof e !== 'string') return false;
+      return e.includes('@')
+        && e !== 'email_not_unlocked@domain.com'
+        && e !== 'Não disponível';
+    };
+
+    const emailCandidates = [
+      contact?.email,
+      ...(contact?.all_emails || []).map(e => typeof e === 'string' ? e : e?.email),
+      ...(contact?.emails_apollo || [])
+    ];
+    const email = emailCandidates.find(isValidEmail) || null;
+
     const phone = contact?.phone
       || contact?.all_phones?.[0]?.number
       || contact?.phones_apollo?.[0]?.number
