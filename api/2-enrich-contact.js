@@ -1,4 +1,5 @@
 const axios = require('axios');
+const lushaCache = require('./_lusha-cache');
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -47,7 +48,17 @@ module.exports = async (req, res) => {
         if (contact.company) params.companyName = contact.company;
         
         console.log('Lusha params:', params);
-        
+
+        // Intentar cache primero — shared entre vendedores, TTL 30 días
+        const cached = await lushaCache.tryGet(params);
+        if (cached.hit) {
+            return res.status(200).json({
+                ...cached.data,
+                from_cache: true,
+                lusha_credit_used: false  // NO quemar crédito si vino del cache
+            });
+        }
+
         const response = await axios({
             method: 'GET',
             url: 'https://api.lusha.com/v2/person',
@@ -115,8 +126,8 @@ module.exports = async (req, res) => {
         }
         
         console.log(`✅ Lusha: ${emails.length} emails, ${phones.length} phones`);
-        
-        res.status(200).json({
+
+        const responsePayload = {
             success: true,
             contact_id: contact.id,
             enriched_data: {
@@ -133,8 +144,14 @@ module.exports = async (req, res) => {
                 }
             },
             lusha_credit_used: true,
+            from_cache: false,
             timestamp: new Date().toISOString()
-        });
+        };
+
+        // Guardar en cache — el helper filtra resultados vacíos internamente
+        await lushaCache.set(cached.cacheKey, params, responsePayload, null);
+
+        res.status(200).json(responsePayload);
 
     } catch (error) {
         console.error('❌ Lusha error:', error.message);

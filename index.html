@@ -496,12 +496,18 @@ async function enrichContact(contact, companyName) {
       };
       localStorage.setItem('enriched_contacts', JSON.stringify(enrichedContacts));
 
-      const cur = parseInt(document.getElementById('lusha-credits').textContent);
-      document.getElementById('lusha-credits').textContent = cur + 1;
+      // Solo incrementar counter si Lusha cobró crédito (no vino del cache)
+      if (!data.from_cache && data.lusha_credit_used !== false) {
+        const cur = parseInt(document.getElementById('lusha-credits').textContent);
+        document.getElementById('lusha-credits').textContent = cur + 1;
+      }
 
+      const prefix = data.from_cache
+        ? '♻️ Dados de cache (outro vendedor já enriqueceu):\n\n'
+        : '✅ Contato enriquecido!\n\n';
       const emailsText = data.enriched_data.emails?.join('\n') || 'Nenhum';
       const phonesText = data.enriched_data.phones?.join('\n') || 'Nenhum';
-      alert(`✅ Contato enriquecido!\n\nEmails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
+      alert(prefix + `Emails:\n${emailsText}\n\nTelefones:\n${phonesText}`);
       searchCompanies(currentPage);
     } else {
       alert('❌ Falha: ' + data.error);
